@@ -1,4 +1,7 @@
-from torchvision.models.segmentation import deeplabv3_mobilenet_v3_large, DeepLabV3_MobileNet_V3_Large_Weights
+from torchvision.models.segmentation import (
+    deeplabv3_mobilenet_v3_large,
+    DeepLabV3_MobileNet_V3_Large_Weights,
+)
 import torch
 import json
 from pathlib import Path
@@ -31,3 +34,5 @@ torch.onnx.export(
     dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
     export_params=True,
 )
+
+print(model(onnx_input))

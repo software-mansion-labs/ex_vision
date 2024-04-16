@@ -7,7 +7,7 @@ defmodule ExVision.Segmentation.DeepLabV3_MobileNetV3 do
   require Bunch.Typespec
   use ExVision.Model.Behavior
 
-  @dir "models/classification/mobilenet_v3_small"
+  @dir "models/segmentation/deeplab_v3"
   @model_path @dir |> Path.join("model.onnx") |> Path.expand()
   @categories @dir
               |> Path.join("categories.json")
@@ -36,7 +36,19 @@ defmodule ExVision.Segmentation.DeepLabV3_MobileNetV3 do
     |> Ortex.run(Utils.load_image(input))
     |> elem(0)
     |> Nx.backend_transfer()
+    # Remove batch
+    |> Nx.squeeze()
+    # Apply softmax for each pixel
+    |> Axon.Activations.softmax(axis: [0])
+    # Split categories
+    |> Nx.to_batched(1)
+    |> Enum.map(&Nx.squeeze/1)
+    |> then(&Enum.zip(categories(), &1))
+    |> Map.new()
   end
+
+  @spec categories() :: [category_t()]
+  def categories(), do: @categories
 end
 
 defimpl ExVision.Model, for: ExVision.Segmentation.DeepLabV3_MobileNetV3 do

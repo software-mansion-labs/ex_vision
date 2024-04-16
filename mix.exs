@@ -42,6 +42,7 @@ defmodule ExVision.Mixfile do
       {:stb_image, "~> 0.6"},
       {:nx_image, "~> 0.1.2"},
       {:bunch, "~> 1.6", runtime: false},
+      {:axon, "~> 0.6.1"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:dialyxir, ">= 0.0.0", only: :dev, runtime: false},
       {:credo, ">= 0.0.0", only: :dev, runtime: false}
