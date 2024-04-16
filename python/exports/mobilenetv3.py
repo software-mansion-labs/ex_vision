@@ -3,7 +3,7 @@ import torch
 import json
 from pathlib import Path
 
-base_dir = Path("models/object-detection/mobilenet_v3_small")
+base_dir = Path("models/classification/mobilenet_v3_small")
 base_dir.mkdir(parents=True, exist_ok=True)
 
 model_file = base_dir / "model.onnx"

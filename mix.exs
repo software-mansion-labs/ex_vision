@@ -39,6 +39,9 @@ defmodule ExVision.Mixfile do
     [
       {:nx, ">= 0.0.0"},
       {:ortex, ">= 0.0.0"},
+      {:stb_image, "~> 0.6"},
+      {:nx_image, "~> 0.1.2"},
+      {:bunch, "~> 1.6", runtime: false},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:dialyxir, ">= 0.0.0", only: :dev, runtime: false},
       {:credo, ">= 0.0.0", only: :dev, runtime: false}
@@ -63,7 +66,7 @@ defmodule ExVision.Mixfile do
       maintainers: ["Membrane Team"],
       licenses: ["Apache-2.0"],
       links: %{
-        "GitHub" => @github_url,
+        "GitHub" => @github_url
       }
     ]
   end
@@ -71,7 +74,7 @@ defmodule ExVision.Mixfile do
   defp docs do
     [
       main: "readme",
-      extras: ["README.md", "LICENSE", "models"],
+      extras: ["README.md", "LICENSE"],
       formatters: ["html"],
       source_ref: "v#{@version}",
       nest_modules_by_prefix: [ExVision]
