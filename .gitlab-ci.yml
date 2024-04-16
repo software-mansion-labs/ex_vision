@@ -1,50 +1,40 @@
 # Define the Dialyzer setup
-dialyzer_setup:
-  stage: build
+default:
   image: elixir:latest
-
   before_script:
     - mix local.hex --force
     - mix local.rebar --force
     - mix deps.get
+    - curl -sSf https://sh.rustup.rs | sh -s -- -y
+    - source $HOME/.cargo/env
+    - rustup default stable
+
+stages:
+  - build
+  - test
+
+dialyzer:
+  stage: build
+  image: elixir:latest
 
   script:
     - mix dialyzer --plt
 
 # Define the stages for the CI
-stages:
-  - build
-  - test
+
 
 # Define the job to build the project and set up Dialyzer
 build:
   stage: build
-  image: elixir:latest
-
-  before_script:
-    - mix local.hex --force
-    - mix local.rebar --force
-    - mix deps.get
 
   script:
     - mix compile
     - mix deps.compile
 
-  artifacts:
-    paths:
-      - _build
-      - deps
-      - priv/plts
-
 # Define the job to run tests
 test:
   stage: test
-  image: elixir:latest
 
-  before_script:
-    - mix local.hex --force
-    - mix local.rebar --force
-    - mix deps.get
   script:
     - mix compile --warnings-as-errors
     - mix credo --strict
