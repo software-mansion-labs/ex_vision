@@ -1,16 +1,12 @@
-# Define the global before_script
-before_script:
-  - mix local.hex --force
-  - mix local.rebar --force
-  - mix deps.get
-
 # Define the Dialyzer setup
 dialyzer_setup:
   stage: build
   image: elixir:latest
 
   before_script:
-    - before_script
+    - mix local.hex --force
+    - mix local.rebar --force
+    - mix deps.get
 
   script:
     - mix dialyzer --plt
@@ -26,7 +22,9 @@ build:
   image: elixir:latest
 
   before_script:
-    - before_script
+    - mix local.hex --force
+    - mix local.rebar --force
+    - mix deps.get
 
   script:
     - mix compile
@@ -44,8 +42,9 @@ test:
   image: elixir:latest
 
   before_script:
-    - before_script
-
+    - mix local.hex --force
+    - mix local.rebar --force
+    - mix deps.get
   script:
     - mix compile --warnings-as-errors
     - mix credo --strict
@@ -53,5 +52,3 @@ test:
 
 variables:
   MIX_ENV: test
-  PLT_LOCAL_PATH: "priv/plts"
-  PLT_CORE_PATH: "priv/plts"
