@@ -16,8 +16,6 @@ model.eval()
 categories = weights.meta["categories"]
 transforms = weights.transforms()
 
-print(transforms)
-
 with open(categories_file, "w") as f:
     json.dump(categories, f)
 
