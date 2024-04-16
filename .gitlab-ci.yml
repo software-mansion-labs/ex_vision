@@ -1,4 +1,3 @@
-# Define the Dialyzer setup
 default:
   image: elixir:latest
   before_script:
@@ -9,21 +8,6 @@ default:
     - source $HOME/.cargo/env
     - rustup default stable
 
-stages:
-  - build
-  - test
-
-dialyzer:
-  stage: build
-  image: elixir:latest
-
-  script:
-    - mix dialyzer --plt
-
-# Define the stages for the CI
-
-
-# Define the job to build the project and set up Dialyzer
 build:
   stage: build
 
@@ -31,7 +15,6 @@ build:
     - mix compile
     - mix deps.compile
 
-# Define the job to run tests
 test:
   stage: test
 
