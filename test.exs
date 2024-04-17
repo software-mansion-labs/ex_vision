@@ -1,6 +1,7 @@
-alias ExVision.Segmentation.DeepLabV3_MobileNetV3, as: Model
+alias ExVision.Detection.Ssdlite320_MobileNetv3, as: Model
 
-m = Model.load()
 cat_path = "examples/files/cat.jpg"
 
-Model.run(m, cat_path) |> dbg()
+model = Model.load()
+
+model |> ExVision.Model.run(cat_path) |> dbg()

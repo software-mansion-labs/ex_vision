@@ -21,8 +21,8 @@ ExVision is meant to be a library of exported ONNX models packaged in an easy to
 ## Demo
 
 ```elixir
-alias ExVision.Classification.MobilenetV3
-model = MobilenetV3.load()
+alias ExVision.Classification.MobileNetV3
+model = MobileNetV3.load()
 ```
 
 Let's fetch the image of the cat
@@ -35,7 +35,7 @@ Kino.Image.new(File.read!(cat_path), "image/jpeg")
 And try to classify it. We're getting a dictionary of probabilities as a result, thanks to us a few lines of postprocessing happening on the backend.
 
 ```elixir
-result = MobilenetV3.run(model, cat_path)
+result = ExVision.Model.run(model, cat_path)
 ```
 
 ```elixir

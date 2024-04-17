@@ -22,7 +22,7 @@ defmodule ExVision.Mixfile do
       name: "Ex Vision",
       source_url: @github_url,
       docs: docs(),
-      homepage_url: "https://membrane.stream"
+      homepage_url: "https://membrane.stream",
     ]
   end
 

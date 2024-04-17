@@ -3,38 +3,26 @@ defmodule ExVision.Segmentation.DeepLabV3_MobileNetV3 do
   A semantic segmentation model for MobileNetV3 Backbone. Exported from torchvision.
   """
 
-  alias ExVision.Utils
+  use ExVision.Model.Behavior, base_dir: "models/segmentation/deeplab_v3"
+
   require Bunch.Typespec
-  use ExVision.Model.Behavior
 
-  @dir "models/segmentation/deeplab_v3"
-  @model_path @dir |> Path.join("model.onnx") |> Path.expand()
-  @categories @dir
-              |> Path.join("categories.json")
-              |> File.read!()
-              |> Jason.decode!()
-              |> Enum.map(fn c ->
-                c |> String.downcase() |> String.replace(~r(\ |\'|\-), "_") |> String.to_atom()
-              end)
-
-  @type category_t() :: unquote(Bunch.Typespec.enum_to_alternative(@categories))
-
-  defstruct [:model]
-
-  @type t() :: %__MODULE__{
-          model: %Ortex.Model{}
-        }
-
-  @spec load() :: t()
-  def load() do
-    %__MODULE__{model: Ortex.load(@model_path)}
-  end
+  alias ExVision.Utils
 
   @spec run(t(), ExVision.Model.input_t()) :: ExVision.Model.output_t()
   def run(%__MODULE__{model: model}, input) do
     model
-    |> Ortex.run(Utils.load_image(input))
+    |> Ortex.run(preprocessing(input))
     |> elem(0)
+    |> postprocessing()
+  end
+
+  @spec preprocessing(ExVision.Model.input_t()) :: Nx.Tensor.t()
+  defdelegate preprocessing(image), to: Utils, as: :load_image
+
+  @spec postprocessing(Nx.Tensor.t()) :: ExVision.Model.output_t()
+  def postprocessing(tensor) do
+    tensor
     |> Nx.backend_transfer()
     # Remove batch
     |> Nx.squeeze()
@@ -46,9 +34,6 @@ defmodule ExVision.Segmentation.DeepLabV3_MobileNetV3 do
     |> then(&Enum.zip(categories(), &1))
     |> Map.new()
   end
-
-  @spec categories() :: [category_t()]
-  def categories(), do: @categories
 end
 
 defimpl ExVision.Model, for: ExVision.Segmentation.DeepLabV3_MobileNetV3 do
