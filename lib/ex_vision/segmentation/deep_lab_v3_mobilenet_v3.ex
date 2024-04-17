@@ -9,12 +9,13 @@ defmodule ExVision.Segmentation.DeepLabV3_MobileNetV3 do
 
   alias ExVision.Utils
 
+  @type output_t() :: %{category_t() => Nx.Tensor.t()}
+
   @spec run(t(), ExVision.Model.input_t()) :: ExVision.Model.output_t()
   def run(%__MODULE__{model: model}, input) do
-    model
-    |> Ortex.run(preprocessing(input))
-    |> elem(0)
-    |> postprocessing()
+    # aux is used only for training, it's not important in this case
+    {out, _aux} = Ortex.run(model, preprocessing(input))
+    postprocessing(out)
   end
 
   @spec preprocessing(ExVision.Model.input_t()) :: Nx.Tensor.t()
@@ -22,17 +23,18 @@ defmodule ExVision.Segmentation.DeepLabV3_MobileNetV3 do
 
   @spec postprocessing(Nx.Tensor.t()) :: ExVision.Model.output_t()
   def postprocessing(tensor) do
-    tensor
-    |> Nx.backend_transfer()
-    # Remove batch
-    |> Nx.squeeze()
-    # Apply softmax for each pixel
-    |> Axon.Activations.softmax(axis: [0])
-    # Split categories
-    |> Nx.to_batched(1)
-    |> Enum.map(&Nx.squeeze/1)
-    |> then(&Enum.zip(categories(), &1))
-    |> Map.new()
+    cls_per_pixel =
+      tensor
+      |> Nx.backend_transfer()
+      # Remove batch
+      |> Nx.squeeze()
+      # Apply softmax for each pixel
+      |> Axon.Activations.softmax(axis: [0])
+      |> Nx.argmax(axis: 0)
+
+    categories()
+    |> Enum.with_index()
+    |> Map.new(fn {category, i} -> {category, Nx.equal(cls_per_pixel, i)} end)
   end
 end
 

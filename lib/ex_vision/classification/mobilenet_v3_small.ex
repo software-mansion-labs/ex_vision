@@ -9,7 +9,7 @@ defmodule ExVision.Classification.MobileNetV3 do
   require Bunch.Typespec
   alias ExVision.Utils
 
-  @spec run(t(), ExVision.Model.input_t()) :: ExVision.Model.output_t()
+  @spec run(t(), ExVision.Model.input_t()) :: %{category_t() => number()}
   def run(%__MODULE__{model: model}, input) do
     model
     |> Ortex.run(Utils.load_image(input))

@@ -30,9 +30,16 @@ torch.onnx.export(
     str(model_file),
     verbose=False,
     input_names=["input"],
-    output_names=["output"],
+    output_names=["output", "aux"],
     dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
     export_params=True,
 )
 
-print(model(onnx_input))
+from torchvision.io.image import read_image
+
+cat = read_image("examples/files/cat.jpg")
+batch = transforms(cat).unsqueeze(0)
+
+outputs = model(batch)
+
+print(outputs)
