@@ -16,7 +16,9 @@ defmodule ExVision.Model.Behavior do
       |> Module.split()
       |> List.last()
       |> String.split("_")
-      |> Enum.map_join(" ", fn <<first::binary-size(1), rest::binary>> -> String.upcase(first) <> rest end)
+      |> Enum.map_join(" ", fn <<first::binary-size(1), rest::binary>> ->
+        String.upcase(first) <> rest
+      end)
 
   defmacro __before_compile__(env) do
     has_type? = Module.defines_type?(env.module, {:t, 0})

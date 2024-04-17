@@ -1,6 +1,10 @@
 defmodule ExVision.Detection.Ssdlite320_MobileNetv3 do
-  alias ExVision.Utils
+  @moduledoc """
+  SSDLite320 object detector with MobileNetV3 Large architecture, exported from torchvision.
+  """
   use ExVision.Model.Behavior, base_dir: "models/detection/ssdlite320_mobilenetv3"
+
+  alias ExVision.Utils
 
   alias __MODULE__.BBox
 
@@ -14,7 +18,7 @@ defmodule ExVision.Detection.Ssdlite320_MobileNetv3 do
 
     [bboxes, scores, labels]
     |> Enum.zip()
-    |> Enum.map(fn {[x1,y1,x2,y2], score, label} ->
+    |> Enum.map(fn {[x1, y1, x2, y2], score, label} ->
       %BBox{
         x1: x1,
         x2: x2,
@@ -25,8 +29,6 @@ defmodule ExVision.Detection.Ssdlite320_MobileNetv3 do
       }
     end)
   end
-
-
 end
 
 defimpl ExVision.Model, for: ExVision.Detection.Ssdlite320_MobileNetv3 do

@@ -4,9 +4,7 @@ defmodule ExVision.Segmentation.DeepLabV3_MobileNetV3 do
   """
 
   use ExVision.Model.Behavior, base_dir: "models/segmentation/deeplab_v3"
-
   require Bunch.Typespec
-
   alias ExVision.Utils
 
   @type output_t() :: %{category_t() => Nx.Tensor.t()}

@@ -1,0 +1,85 @@
+# ExVision semantic segmentation
+
+```elixir
+Mix.install([
+  {:ex_vision, ">= 0.0.0", path: Path.join(__DIR__, "..")},
+  :kino,
+  :kino_bumblebee
+])
+```
+
+## Load the cat image
+
+```elixir
+cat_path = Path.join(__DIR__, "files/cat.jpg")
+
+Kino.Image.new(File.read!(cat_path), "image/jpeg")
+```
+
+## Load the model and perform semantic segmentation
+
+```elixir
+alias ExVision.Segmentation.DeepLabV3_MobileNetV3, as: Model
+model = Model.load()
+result = Model.run(model, cat_path)
+```
+
+Let's take a closer look at the outputs to better understand them.
+
+```elixir
+result[:cat]
+```
+
+It's a 224x224 tensor containing zeros and ones, which can be interpreted as a boolean mask of the cat in this case. Let's attempt to plot a few select categories.
+
+```elixir
+cat_image = StbImage.read_file!(cat_path)
+{h, w, 3} = cat_image.shape
+cat_image = cat_image |> StbImage.resize(224, 224) |> StbImage.to_nx()
+```
+
+```elixir
+form =
+  Kino.Control.form(
+    [
+      image: Kino.Input.image("Image to process", format: :jpeg)
+    ],
+    submit: "Evaluate"
+  )
+
+output_frame = Kino.Frame.new()
+
+Kino.listen(form, fn %{data: %{image: %{file_ref: image}}} ->
+  Kino.Frame.render(output_frame, Kino.Text.new("Loading..."))
+  path = Kino.Input.file_path(image)
+  image = path |> StbImage.read_file!() |> StbImage.resize(224, 224) |> StbImage.to_nx()
+  result = Model.run(model, path)
+
+  images =
+    for {label, mask} <- result do
+      mask =
+        mask
+        |> then(&Nx.stack([&1, &1, &1]))
+        |> Nx.transpose(axes: [1, 2, 0])
+
+      image =
+        image
+        |> Nx.multiply(mask)
+        |> StbImage.from_nx()
+        |> StbImage.resize(h, w)
+        |> StbImage.to_nx()
+        |> Kino.Image.new()
+
+      Kino.Layout.grid([
+        Kino.Text.new(Atom.to_string(label)),
+        image
+      ])
+    end
+
+  images
+  |> Kino.Layout.grid(columns: 3)
+  |> then(&Kino.Frame.render(output_frame, &1))
+end)
+
+Kino.Layout.grid([form, output_frame])
+```
