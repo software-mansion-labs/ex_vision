@@ -11,8 +11,10 @@ defmodule ExVision.Classification.MobileNetV3 do
 
   @spec run(t(), ExVision.Model.input_t()) :: %{category_t() => number()}
   def run(%__MODULE__{model: model}, input) do
+    {_size, image} = Utils.load_image(input, size: {224, 224})
+
     model
-    |> Ortex.run(Utils.load_image(input))
+    |> Ortex.run(image)
     |> elem(0)
     |> Nx.backend_transfer()
     |> Nx.flatten()

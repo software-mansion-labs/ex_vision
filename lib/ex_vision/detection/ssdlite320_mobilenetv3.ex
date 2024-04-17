@@ -10,7 +10,10 @@ defmodule ExVision.Detection.Ssdlite320_MobileNetv3 do
 
   @spec run(t(), ExVision.Model.input_t()) :: [BBox.t(category_t())]
   def run(%__MODULE__{model: model}, input) do
-    {bboxes, scores, labels} = Ortex.run(model, Utils.load_image(input))
+    {_size, image} = Utils.load_image(input, size: {224, 224}) |> elem(1)
+
+    {bboxes, scores, labels} =
+      Ortex.run(model, image)
 
     bboxes = bboxes |> Nx.to_list()
     scores = scores |> Nx.to_list()

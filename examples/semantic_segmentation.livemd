@@ -4,7 +4,8 @@
 Mix.install([
   {:ex_vision, ">= 0.0.0", path: Path.join(__DIR__, "..")},
   :kino,
-  :kino_bumblebee
+  :kino_bumblebee,
+  :stb_image
 ])
 ```
 
@@ -53,7 +54,7 @@ Kino.listen(form, fn %{data: %{image: %{file_ref: image}}} ->
   Kino.Frame.render(output_frame, Kino.Text.new("Loading..."))
   path = Kino.Input.file_path(image)
   image = path |> StbImage.read_file!() |> StbImage.resize(224, 224) |> StbImage.to_nx()
-  result = Model.run(model, path)
+  result = Model.run(model, image)
 
   images =
     for {label, mask} <- result do

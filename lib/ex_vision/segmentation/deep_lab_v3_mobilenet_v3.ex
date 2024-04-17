@@ -17,7 +17,7 @@ defmodule ExVision.Segmentation.DeepLabV3_MobileNetV3 do
   end
 
   @spec preprocessing(ExVision.Model.input_t()) :: Nx.Tensor.t()
-  defdelegate preprocessing(image), to: Utils, as: :load_image
+  def preprocessing(image), do: Utils.load_image(image, size: {224, 224}) |> elem(1)
 
   @spec postprocessing(Nx.Tensor.t()) :: ExVision.Model.output_t()
   def postprocessing(tensor) do

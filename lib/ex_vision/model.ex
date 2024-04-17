@@ -4,7 +4,7 @@ defprotocol ExVision.Model do
   """
 
   @type t() :: struct()
-  @type input_t() :: Path.t()
+  @type input_t() :: Path.t() | Nx.Tensor.t() | Evision.Mat.t()
   @type output_t() :: any()
 
   @spec run(t(), input_t()) :: output_t()
