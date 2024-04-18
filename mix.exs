@@ -45,7 +45,7 @@ defmodule ExVision.Mixfile do
       {:evision, "~> 0.1.38"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:dialyxir, ">= 0.0.0", only: :dev, runtime: false},
-      {:credo, ">= 0.0.0", only: :dev, runtime: false}
+      {:credo, ">= 0.0.0", only: [:dev, :test], runtime: false}
     ]
   end
 

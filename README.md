@@ -1,35 +1,69 @@
-# Membrane Template Plugin
+# ExVision
 
-[![Hex.pm](https://img.shields.io/hexpm/v/membrane_template_plugin.svg)](https://hex.pm/packages/membrane_template_plugin)
-[![API Docs](https://img.shields.io/badge/api-docs-yellow.svg?style=flat)](https://hexdocs.pm/membrane_template_plugin)
-[![CircleCI](https://circleci.com/gh/membraneframework/membrane_template_plugin.svg?style=svg)](https://circleci.com/gh/membraneframework/membrane_template_plugin)
+[![Hex.pm](https://img.shields.io/hexpm/v/ex_vision.svg)](https://hex.pm/packages/ex_vision)
+[![API Docs](https://img.shields.io/badge/api-docs-yellow.svg?style=flat)](https://hexdocs.pm/ex_vision)
+<!-- [![CircleCI](https://circleci.com/gh/membraneframework/ex_vision.svg?style=svg)](https://circleci.com/gh/membraneframework/ex_vision) -->
 
-This repository contains a template for new plugins.
+ExVision is the collection of AI models related to vision delivered with ready to use package and easy to understand API.
+ExVision will take care of all necessary input transformations internally and return the result in the sensible format.
 
-Check out different branches for other flavors of this template.
+ExVision models are powered by [Ortex](https://www.github.com/elixir-nx/ortex).
 
-It's a part of the [Membrane Framework](https://membrane.stream).
+## Usage
+In order to use the model, you need to first load it
+```elixir
+alias ExVision.Classification.MobileNetV3
+
+model = MobileNetV3.load() #=> %MobileNetV3{}
+```
+After that, the model is available for inference.
+ExVision will take care of all necessary input transformations and covert output to a format that makes sense.
+```elixir
+MobileNetV3.run(model, "example/files/cat.jpg") #=> %{cat: 0.98, dog: 0.01, car: 0.00, ...}
+```
+
+ExVision is also capable of accepting tensors on input:
+```elixir
+cat = "example/files/cat.jpg" |> StbImage.read_file!() |> StbImage.to_nx()
+MobileNetV3.run(model, cat) #=> %{cat: 0.98, dog: 0.01, car: 0.00, ...}
+```
 
 ## Installation
 
-The package can be installed by adding `membrane_template_plugin` to your list of dependencies in `mix.exs`:
+The package can be installed by adding `ex_vision` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
   [
-    {:membrane_template_plugin, "~> 0.1.0"}
+    {:ex_vision, "~> 0.1.0"}
   ]
 end
 ```
 
-## Usage
+In order to compile, ExVision **requires Rust and Cargo**
 
-TODO
+## Current Timeline
+
+We have identified a set of models that we would like to support.
+If the model that you would like to use is missing, feel free to open the issue, express interest in an existing one or contribute the model directly.
+
+- [ ] Classification
+  - [x] MobileNetV3 Small
+  - [ ] EfficientNetV2
+  - [ ] SqueezeNet
+- [ ] Object detection
+  - [x] SSDLite320 - MobileNetV3 backbone
+- [ ] Semantic segmentation
+  - [x] DeepLabV3 - MobileNetV3
+- [ ] Instance segmentation
+  - [ ] Mask R-CNN
+- [ ] Keypoint Detection
+  - [ ] Keypoint R-CNN
 
 ## Copyright and License
 
-Copyright 2020, [Software Mansion](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=membrane_template_plugin)
+Copyright 2024, [Software Mansion](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=ex_vision)
 
-[![Software Mansion](https://logo.swmansion.com/logo?color=white&variant=desktop&width=200&tag=membrane-github)](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=membrane_template_plugin)
+[![Software Mansion](https://logo.swmansion.com/logo?color=white&variant=desktop&width=200&tag=membrane-github)](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=ex_vision)
 
 Licensed under the [Apache License, Version 2.0](LICENSE)
