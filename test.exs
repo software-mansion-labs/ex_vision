@@ -1,4 +1,4 @@
-alias ExVision.Detection.Ssdlite320_MobileNetv3, as: Model
+alias ExVision.Segmentation.DeepLabV3_MobileNetV3, as: Model
 
 cat_path = "examples/files/cat.jpg"
 

@@ -1,12 +1,15 @@
 # ExVision semantic segmentation
 
 ```elixir
-Mix.install([
-  {:ex_vision, ">= 0.0.0", path: Path.join(__DIR__, "..")},
-  :kino,
-  :kino_bumblebee,
-  :stb_image
-])
+Mix.install(
+  [
+    {:ex_vision, ">= 0.0.0", path: Path.join(__DIR__, "..")},
+    :kino,
+    :kino_bumblebee,
+    :stb_image
+  ],
+  config: [nx: [default_backend: EXLA.Backend]]
+)
 ```
 
 ## Load the cat image
@@ -31,13 +34,7 @@ Let's take a closer look at the outputs to better understand them.
 result[:cat]
 ```
 
-It's a 224x224 tensor containing zeros and ones, which can be interpreted as a boolean mask of the cat in this case. Let's attempt to plot a few select categories.
-
-```elixir
-cat_image = StbImage.read_file!(cat_path)
-{h, w, 3} = cat_image.shape
-cat_image = cat_image |> StbImage.resize(224, 224) |> StbImage.to_nx()
-```
+It's a 360 x 543 tensor containing zeros and ones, which can be interpreted as a boolean mask of the cat in this case
 
 ```elixir
 form =
@@ -53,7 +50,7 @@ output_frame = Kino.Frame.new()
 Kino.listen(form, fn %{data: %{image: %{file_ref: image}}} ->
   Kino.Frame.render(output_frame, Kino.Text.new("Loading..."))
   path = Kino.Input.file_path(image)
-  image = path |> StbImage.read_file!() |> StbImage.resize(224, 224) |> StbImage.to_nx()
+  image = path |> StbImage.read_file!() |> StbImage.to_nx()
   result = Model.run(model, image)
 
   images =
@@ -66,9 +63,6 @@ Kino.listen(form, fn %{data: %{image: %{file_ref: image}}} ->
       image =
         image
         |> Nx.multiply(mask)
-        |> StbImage.from_nx()
-        |> StbImage.resize(h, w)
-        |> StbImage.to_nx()
         |> Kino.Image.new()
 
       Kino.Layout.grid([

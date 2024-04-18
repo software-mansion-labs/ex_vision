@@ -35,7 +35,7 @@ Kino.Image.new(File.read!(cat_path), "image/jpeg")
 And try to classify it. We're getting a dictionary of probabilities as a result, thanks to us a few lines of postprocessing happening on the backend.
 
 ```elixir
-result = ExVision.Model.run(model, cat_path)
+result = MobileNetV3.run(model, cat_path)
 ```
 
 ```elixir
@@ -60,7 +60,7 @@ Kino.listen(form, fn %{data: %{image: %{file_ref: image_ref}}} ->
   path = Kino.Input.file_path(image_ref)
 
   model
-  |> ExVision.Model.run(path)
+  |> MobileNetV3.run(path)
   |> Enum.to_list()
   |> Enum.sort_by(&elem(&1, 1), :desc)
   |> Enum.take(10)

@@ -5,7 +5,7 @@ defmodule ExVision.Utils do
   require Nx
   alias ExVision.Types
 
-  @type channel_spec_t() :: :pytorch | :nx
+  @type channel_spec_t() :: :first | :last
   @type pixel_size_t() :: 8 | 16 | 32 | 64
   @type pixel_type_t() :: {:u | :f, pixel_size_t()}
   @type load_image_option_t() :: {:size, {number(), number()}} | {:pixel_type, pixel_type_t()}
@@ -21,7 +21,7 @@ defmodule ExVision.Utils do
     image =
       image
       |> convert_pixel_type(options[:pixel_type])
-      |> convert_channel_spec(:pytorch)
+      |> convert_channel_spec(:first)
       |> Nx.new_axis(0)
 
     {original_size, image}
@@ -39,10 +39,10 @@ defmodule ExVision.Utils do
   @spec guess_channel_spec(Nx.Tensor.t()) :: channel_spec_t()
   defp guess_channel_spec(tensor) do
     case Nx.shape(tensor) do
-      {_batch, 3, _w, _h} -> :pytorch
-      {3, _w, _h} -> :pytorch
-      {_batch, _w, _h, 3} -> :nx
-      {_w, _h, 3} -> :nx
+      {_batch, 3, _w, _h} -> :first
+      {3, _w, _h} -> :first
+      {_batch, _w, _h, 3} -> :last
+      {_w, _h, 3} -> :last
       shape -> raise "Failed to infer channel spec for shape #{inspect(shape)}"
     end
   end
@@ -71,7 +71,7 @@ defmodule ExVision.Utils do
   end
 
   defp read_image(x, t_size) when Nx.is_tensor(x) do
-    {image_size(x), NxImage.resize(x, t_size)}
+    {image_size(x), NxImage.resize(x, t_size, channels: guess_channel_spec(x))}
   end
 
   defp read_image(x, t_size) when is_binary(x) do
