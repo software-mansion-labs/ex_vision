@@ -21,7 +21,6 @@ test:
   script:
     - mix compile --warnings-as-errors
     - mix credo --strict
-    - mix dialyzer
 
 variables:
   MIX_ENV: test

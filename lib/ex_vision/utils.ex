@@ -3,6 +3,7 @@ defmodule ExVision.Utils do
 
   import Nx.Defn
   require Nx
+  alias ExVision.Types
 
   @type channel_spec_t() :: :pytorch | :nx
   @type pixel_size_t() :: 8 | 16 | 32 | 64
@@ -10,7 +11,7 @@ defmodule ExVision.Utils do
   @type load_image_option_t() :: {:size, {number(), number()}} | {:pixel_type, pixel_type_t()}
 
   @spec load_image(ExVision.Model.input_t(), [load_image_option_t()]) ::
-          {{width :: number(), height :: number()}, Nx.Tensor.t()}
+          {Types.image_size_t(), Nx.Tensor.t()}
   def load_image(image, options \\ []) do
     options = Keyword.validate!(options, [:size, pixel_type: {:f, 32}])
     target_size = Keyword.get(options, :size)
@@ -64,7 +65,7 @@ defmodule ExVision.Utils do
 
   def convert_pixel_type(tensor, nil), do: tensor
 
-  @spec read_image(ExVision.Model.input_t(), {number(), number()}) :: Nx.Tensor.t()
+  @spec read_image(ExVision.Model.input_t(), Types.image_size_t()) :: Nx.Tensor.t()
   defp read_image(%Evision.Mat{} = x, t_size) do
     {image_size(x), x |> Evision.resize(t_size) |> Evision.Mat.to_nx() |> Nx.backend_transfer()}
   end
@@ -77,6 +78,7 @@ defmodule ExVision.Utils do
     x |> Evision.imread() |> read_image(t_size)
   end
 
+  @spec image_size(Evision.Mat.t() | Nx.Tensor.t()) :: Types.image_size_t()
   defp image_size(%Evision.Mat{} = x) do
     {w, h, 3} = Evision.Mat.shape(x)
     {w, h}

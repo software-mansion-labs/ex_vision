@@ -4,8 +4,23 @@ defmodule ExVision.Model.Behavior do
   require Bunch.Typespec
   alias ExVision.Utils
 
+  defmodule Metadata do
+    @moduledoc false
+
+    @enforce_keys [:original_size]
+    defstruct @enforce_keys
+
+    @type t() :: %__MODULE__{
+            original_size: ExVision.Types.image_size_t()
+          }
+  end
+
+  @optional_callbacks [run: 2, preprocessing: 2, postprocessing: 2]
+
   @callback load() :: ExVision.Model.t()
   @callback run(ExVision.Model.t(), ExVision.Model.input_t()) :: any()
+  @callback preprocessing(ExVision.Model.input_t(), Metadata.t()) :: Nx.Tensor.t()
+  @callback postprocessing(tuple(), Metadata.t()) :: ExVision.Model.output_t()
 
   @type using_option_t() ::
           {:base_dir, Path.t()} | {:name, String.t()}
@@ -34,7 +49,9 @@ defmodule ExVision.Model.Behavior do
   end
 
   defmacro __using__(opts) do
-    opts = Keyword.validate!(opts, [:base_dir, name: module_to_name(__CALLER__.module)])
+    module = __CALLER__.module
+
+    opts = Keyword.validate!(opts, [:base_dir, name: module_to_name(module)])
     base_dir = opts[:base_dir]
 
     model = base_dir |> Path.join("model.onnx") |> Path.expand()
@@ -58,30 +75,55 @@ defmodule ExVision.Model.Behavior do
       @doc """
       Creates the model instance
       """
+      @impl true
       @spec load() :: t()
       def load() do
         %__MODULE__{model: Ortex.load(@model_path)}
       end
 
-      defoverridable(load: 0)
+      @doc """
+      Evaluates the model
+      """
+      @impl true
+      @spec run(t(), ExVision.Model.input_t()) :: output_t()
+      def run(%{model: model} = _model, input) do
+        {original_size, image} = ExVision.Utils.load_image(input, size: {224, 224})
+        metadata = %Metadata{original_size: original_size}
+
+        image
+        |> preprocessing(metadata)
+        |> then(&Ortex.run(model, &1))
+        |> postprocessing(metadata)
+      end
+
+      @impl true
+      def preprocessing(image, _metadata), do: image
+
+      defoverridable(load: 0, run: 2, preprocessing: 2)
 
       unless is_nil(unquote(categories)) do
         require Bunch.Typespec
 
-        @categories unquote(categories)
-
         @typedoc """
-        Type describing all available categories for this model
+        Type describing all categories recognised by #{unquote(opts[:name])}
         """
         @type category_t() :: unquote(categories_spec)
 
         @doc """
-        Returns a list of all available categories for this model
+        Returns a list of all categories recognised by #{unquote(opts[:name])}
         """
         @spec categories() :: [category_t()]
-        def categories(), do: @categories
+        def categories(), do: unquote(categories)
+      end
 
-        defoverridable(categories: 0)
+      defimpl ExVision.Model do
+        @spec run(unquote(module).t(), ExVision.Model.input_t()) :: unquote(module).output_t()
+        defdelegate run(model, input), to: unquote(module)
+
+        @spec as_serving(unquote(module).t()) :: Nx.Serving.t()
+        def as_serving(_model) do
+          raise "This feature is not yet supported"
+        end
       end
     end
   end

@@ -78,7 +78,13 @@ defmodule ExVision.Mixfile do
       extras: ["README.md", "LICENSE"],
       formatters: ["html"],
       source_ref: "v#{@version}",
-      nest_modules_by_prefix: [ExVision]
+      nest_modules_by_prefix: [
+        ExVision,
+        ExVision.Classification,
+        ExVision.Detection,
+        ExVision.Segmentation,
+        ExVision.Types
+      ]
     ]
   end
 end
