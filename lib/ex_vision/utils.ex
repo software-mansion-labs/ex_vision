@@ -3,6 +3,7 @@ defmodule ExVision.Utils do
 
   import Nx.Defn
   require Nx
+  require Image
   alias ExVision.Types
 
   @type channel_spec_t() :: :first | :last
@@ -66,13 +67,8 @@ defmodule ExVision.Utils do
   def convert_pixel_type(tensor, nil), do: tensor
 
   @spec read_image(ExVision.Model.input_t(), Types.image_size_t()) :: Nx.Tensor.t()
-  defp read_image(%Evision.Mat{} = x, t_size) do
-    {image_size(x),
-     x
-     |> Evision.resize(t_size)
-     |> Evision.cvtColor(Evision.Constant.cv_COLOR_BGR2RGB())
-     |> Evision.Mat.to_nx()
-     |> Nx.backend_transfer()}
+  defp read_image(%Vix.Vips.Image{} = image, t_size) do
+    image |> Image.to_nx!() |> read_image(t_size)
   end
 
   defp read_image(x, t_size) when Nx.is_tensor(x) do
@@ -80,14 +76,11 @@ defmodule ExVision.Utils do
   end
 
   defp read_image(x, t_size) when is_binary(x) do
-    x |> Evision.imread() |> read_image(t_size)
+    x |> Image.open!() |> read_image(t_size)
   end
 
-  @spec image_size(Evision.Mat.t() | Nx.Tensor.t()) :: Types.image_size_t()
-  defp image_size(%Evision.Mat{} = x) do
-    {h, w, 3} = Evision.Mat.shape(x)
-    {w, h}
-  end
+  @spec image_size(Vix.Vips.Image.t() | Nx.Tensor.t()) :: Types.image_size_t()
+  defp image_size(%Vix.Vips.Image{} = image), do: {Image.height(image), Image.width(image)}
 
   defp image_size(t) when Nx.is_tensor(t) do
     case t |> Nx.squeeze() |> Nx.shape() do

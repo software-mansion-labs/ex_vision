@@ -1,0 +1,202 @@
+<!-- livebook:{"file_entries":[{"name":"cat.jpg","type":"attachment"}]} -->
+
+# ExVision master demo
+
+```elixir
+Mix.install(
+  [
+    {:ex_vision, path: Path.join(__DIR__, "../")},
+    :kino,
+    :kino_bumblebee,
+    :stb_image,
+    :exla,
+    :plug,
+    :plug_cowboy,
+    :image
+  ],
+  config: [nx: [default_backend: EXLA.Backend]]
+)
+
+defmodule DocsPlug do
+  use Plug.Builder
+
+  plug(Plug.Static, from: Path.join(__DIR__, "../doc/"), at: "/")
+end
+
+{:ok, _} =
+  Supervisor.start_link(
+    [
+      {Plug.Cowboy, plug: DocsPlug, scheme: :http, options: [port: 55556]}
+    ],
+    strategy: :one_for_one
+  )
+```
+
+## ExVision introduction
+
+**This Livebook will only work when the repository is cloned locally**
+
+<!-- livebook:{"break_markdown":true} -->
+
+ExVision is a collection of models with easy to use API and descriptive output formats.
+It uses [Ortex](https://www.github.com/elixir-nx/ortex) under the hood to run it's predefined models.
+
+The main objective of ExVision is ease of use. This sacrifices some control over the model but allows you to get started using predefined models in seconds. That approach should allow an average Elixir Developer to quickly introduce some AI into their app, just like that.
+
+```elixir
+alias ExVision.Classification.MobileNetV3, as: Classifier
+alias ExVision.Detection.Ssdlite320_MobileNetv3, as: Detector
+alias ExVision.Segmentation.DeepLabV3_MobileNetV3, as: Segmentation
+
+classifier = Classifier.load()
+detector = Detector.load()
+segmentation = Segmentation.load()
+
+Kino.nothing()
+```
+
+At this point the model is loaded and ready for inference.
+
+ExVision handles multiple types of input:
+
+* file path
+* pre-loaded Nx tensors, in both interleaved and planar formats
+* Evision matricies.
+
+Under the hood, all of these formats will be converted to Nx's Tensors and normalized for inference by the given model.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Output formats
+
+A big point of ExVision over using the models directly has to be documentation and intuitive outputs. Hence, models return the following types:
+
+* Classifier - a mapping the category into the probability: [`%{category_t() => number()}`](http://localhost:55556/ExVision.Classification.MobileNetV3.html#t:output_t/0)
+* Detector - a list of bounding boxes: [`list(BBox.t())`](http://localhost:55556/ExVision.Detection.Ssdlite320_MobileNetv3.BBox.html)
+* Segmentation - a mapping of category to boolean tensor determining if the pixel is part of the mask for the given class: [`%{category_t() => Nx.Tensor.t()}`](http://localhost:55556/ExVision.Segmentation.DeepLabV3_MobileNetV3.html#t:output_t/0)
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Example inference
+
+Let's put it into practice and run some predictions on a sample image of the cat.
+This code is intentionally using some calls to `dbg/1` macro in order to aid with the understanding of these formats.
+
+However, let's start with loading our test suspect.
+
+```elixir
+# Feel free to include your own image here
+cat_path = Path.join(__DIR__, "files/cat.jpg")
+cat_image = Image.open!(cat_path)
+```
+
+### Image classification
+
+Image classification is the process of assining the image a category that best describes the contents of that image. For example, when given an image of a cat, image classifier predict that the image should be assinged to `:cat` class.
+
+The output format of an classifier is a dictionary that maps the category that the model knows into the probability. In most cases, that means that you will get a lot of categories with near zero probability and that's on purpose. Where possible, we don't want to make ExVision feel too much like magic. You're still doing AI, we're just handling the input and output format conversions.
+
+Usually however, the class with the highest probability is the category you should assign. However, if there are multiple classes with comparatively high probabilities, this may indicate that the model has no idea and it's actually not a prediction at all.
+
+#### Code example
+
+```elixir
+predictions =
+  cat_image
+  # run inference
+  |> then(&Classifier.run(classifier, &1))
+  # sort the dictionary by the probability of the prediction
+  |> Enum.sort_by(fn {_label, score} -> score end, :desc)
+  # Only include a few of the most likely predictions in the output
+  |> Enum.take(10)
+  |> dbg()
+
+[{top_prediction, _score} | _rest] = predictions
+
+# Kino rendering stuff, not important
+scored_list = Kino.Bumblebee.ScoredList.new(predictions)
+
+Kino.Layout.grid(
+  [
+    Kino.Layout.grid([
+      cat_image,
+      Kino.Text.new("This image shows an object of class `#{Atom.to_string(top_prediction)}`")
+    ]),
+    Kino.Layout.grid([Kino.Text.new("Class probabilities"), scored_list])
+  ],
+  columns: 2,
+  gap: 25
+)
+```
+
+### Object detection
+
+In object detection, we're trying to locate the objects in the image. Format of the output in this case should provide a lot of clarification: it's a list of bounding boxes, which effectively indicate the area in the image that the object of the specified class are located in according to the image. Each bounding box is also assigned a score, which can be interpreted as the certainty of the detection.
+
+By default, ExVision will discard extremely low probability bounding boxes (with scores lower than 0.1), as they are just noise.
+
+#### Code example
+
+In this example, we will draw a rectangle around the biggest object in the image. In order to do this, we will perform the following operations:
+
+* Use the object detector to get the bounding boxes
+* Find the bounding box with the biggest total area
+* Draw a rectangle around the the region indicated by that bounding box
+
+```elixir
+alias ExVision.Detection.Ssdlite320_MobileNetv3.BBox
+
+cat_img = cat_path |> Image.open!()
+
+prediction =
+  cat_path
+  |> then(&Detector.run(detector, &1))
+  |> Enum.max_by(fn %BBox{} = bbox -> BBox.width(bbox) * BBox.height(bbox) end)
+  |> dbg()
+
+Image.Draw.rect!(
+  cat_img,
+  prediction.x1,
+  prediction.y1,
+  BBox.width(prediction),
+  BBox.height(prediction),
+  fill: false,
+  color: :red,
+  stroke_width: 5
+)
+```
+
+## Semantic segmentation
+
+The goal of semantic segmentation is to generate per-pixel masks stating if the object of the given class is in the corresponding pixel.
+
+In ExVision, the output of semantic segmentation models is a mapping of category to a binary per-pixel binary mask. In contrast to previous models, we're not getting scores.
+
+```elixir
+nx_image = Image.to_nx!(cat_image)
+uniform_black = 0 |> Nx.broadcast(Nx.shape(nx_image)) |> Nx.as_type(Nx.type(nx_image))
+
+predictions =
+  cat_image
+  |> then(&Segmentation.run(segmentation, &1))
+  |> Enum.filter(fn {_label, mask} ->
+    (mask |> Nx.sum() |> Nx.to_number()) / Nx.flat_size(mask) > 0.05
+  end)
+  |> dbg()
+
+predictions
+|> Enum.map(fn {label, mask} ->
+  # expand the mask to cover all channels
+  mask = Nx.broadcast(mask, Nx.shape(nx_image), axes: [0, 1])
+
+  # Cut out the mask from the original image
+  image = Nx.select(mask, nx_image, uniform_black)
+  image = Nx.as_type(image, :u8)
+
+  Kino.Layout.grid([
+    label |> Atom.to_string() |> Kino.Text.new(),
+    Kino.Image.new(image)
+  ])
+end)
+|> Kino.Layout.grid(columns: 2)
+```

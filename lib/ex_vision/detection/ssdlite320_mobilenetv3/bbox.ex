@@ -27,4 +27,12 @@ defmodule ExVision.Detection.Ssdlite320_MobileNetv3.BBox do
           label: label_t,
           score: number()
         }
+
+  @typep t() :: t(term())
+
+  @spec width(t()) :: number()
+  def width(%__MODULE__{x1: x1, x2: x2}), do: abs(x2 - x1)
+
+  @spec height(t()) :: number()
+  def height(%__MODULE__{y1: y1, y2: y2}), do: abs(y2 - y1)
 end

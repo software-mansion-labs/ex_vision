@@ -45,7 +45,7 @@ form = Kino.Control.form([image: Kino.Input.image("Image", format: :jpeg)], subm
 frame = Kino.Frame.new()
 
 Kino.listen(form, fn %{data: %{image: %{file_ref: image}}} ->
-  image = Kino.Input.file_path(image) |> dbg()
+  image = Kino.Input.file_path(image)
 
   outputs =
     image
@@ -60,7 +60,6 @@ Kino.listen(form, fn %{data: %{image: %{file_ref: image}}} ->
     rect =
       {round(bbox.x1), round(bbox.y1), round(bbox.x2) - round(bbox.x1),
        round(bbox.y2) - round(bbox.y1)}
-      |> dbg()
 
     Evision.rectangle(image, rect, {255, 0, 0})
   end)

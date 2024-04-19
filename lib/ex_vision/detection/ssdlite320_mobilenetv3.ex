@@ -17,13 +17,15 @@ defmodule ExVision.Detection.Ssdlite320_MobileNetv3 do
 
   @impl true
   def postprocessing({bboxes, scores, labels}, metadata) do
-    {w, h} = metadata.original_size
+    {h, w} = metadata.original_size
     scale_x = w / 224
     scale_y = h / 224
 
     bboxes =
       bboxes
       |> Nx.multiply(Nx.tensor([scale_x, scale_y, scale_x, scale_y]))
+      |> Nx.round()
+      |> Nx.as_type(:s64)
       |> Nx.to_list()
 
     scores = scores |> Nx.to_list()
