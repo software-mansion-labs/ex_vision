@@ -93,6 +93,7 @@ defmodule ExVision.Model.Behavior do
         image
         |> preprocessing(metadata)
         |> then(&Ortex.run(model, &1))
+        |> ExVision.Utils.backend_transfer()
         |> postprocessing(metadata)
       end
 

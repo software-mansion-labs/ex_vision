@@ -1,0 +1,73 @@
+<!-- livebook:{"file_entries":[{"name":"multipla.jpg","type":"attachment"}]} -->
+
+# ExVision object detection
+
+```elixir
+Mix.install(
+  [
+    {:ex_vision, path: Path.join(__DIR__, "..")},
+    :kino
+  ],
+  config: [nx: [default_backend: EXLA.Backend]]
+)
+```
+
+## Load the model
+
+```elixir
+alias ExVision.Detection.Ssdlite320_MobileNetv3, as: Model
+
+model = Model.load()
+```
+
+```elixir
+cat = Path.join(__DIR__, "files/cat.jpg")
+```
+
+```elixir
+output = Model.run(model, cat)
+```
+
+```elixir
+%{x1: x1, y1: y1, x2: x2, y2: y2} = output |> Enum.filter(&(&1.score > 0.9)) |> hd()
+rect = {round(x1), round(y1), round(x2) - round(x1), round(y2) - round(y1)}
+
+image = cat |> Evision.imread() |> Evision.cvtColor(Evision.Constant.cv_COLOR_BGR2RGB())
+image = Evision.rectangle(image, rect, {255, 0, 0})
+
+dbg(image.shape)
+
+Kino.Image.new(Evision.Mat.to_nx(image))
+```
+
+```elixir
+form = Kino.Control.form([image: Kino.Input.image("Image", format: :jpeg)], submit: "Evaluate")
+frame = Kino.Frame.new()
+
+Kino.listen(form, fn %{data: %{image: %{file_ref: image}}} ->
+  image = Kino.Input.file_path(image) |> dbg()
+
+  outputs =
+    image
+    |> then(&Model.run(model, &1))
+
+  # |> Enum.filter(& &1.score > 0.8)
+
+  image = image |> Evision.imread() |> Evision.cvtColor(Evision.Constant.cv_COLOR_BGR2RGB())
+
+  outputs
+  |> Enum.reduce(image, fn bbox, image ->
+    rect =
+      {round(bbox.x1), round(bbox.y1), round(bbox.x2) - round(bbox.x1),
+       round(bbox.y2) - round(bbox.y1)}
+      |> dbg()
+
+    Evision.rectangle(image, rect, {255, 0, 0})
+  end)
+  |> Evision.Mat.to_nx()
+  |> Kino.Image.new()
+  |> then(&Kino.Frame.render(frame, &1))
+end)
+
+Kino.Layout.grid([form, frame])
+```

@@ -16,13 +16,22 @@ defmodule ExVision.Detection.Ssdlite320_MobileNetv3 do
   @type output_t() :: [BBox.t(category_t())]
 
   @impl true
-  def postprocessing({bboxes, scores, labels}, _metadata) do
-    bboxes = bboxes |> Nx.to_list()
+  def postprocessing({bboxes, scores, labels}, metadata) do
+    {w, h} = metadata.original_size
+    scale_x = w / 224
+    scale_y = h / 224
+
+    bboxes =
+      bboxes
+      |> Nx.multiply(Nx.tensor([scale_x, scale_y, scale_x, scale_y]))
+      |> Nx.to_list()
+
     scores = scores |> Nx.to_list()
     labels = labels |> Nx.to_list()
 
     [bboxes, scores, labels]
     |> Enum.zip()
+    |> Enum.filter(fn {_bbox, score, _label} -> score > 0.1 end)
     |> Enum.map(fn {[x1, y1, x2, y2], score, label} ->
       %BBox{
         x1: x1,

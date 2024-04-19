@@ -67,7 +67,12 @@ defmodule ExVision.Utils do
 
   @spec read_image(ExVision.Model.input_t(), Types.image_size_t()) :: Nx.Tensor.t()
   defp read_image(%Evision.Mat{} = x, t_size) do
-    {image_size(x), x |> Evision.resize(t_size) |> Evision.Mat.to_nx() |> Nx.backend_transfer()}
+    {image_size(x),
+     x
+     |> Evision.resize(t_size)
+     |> Evision.cvtColor(Evision.Constant.cv_COLOR_BGR2RGB())
+     |> Evision.Mat.to_nx()
+     |> Nx.backend_transfer()}
   end
 
   defp read_image(x, t_size) when Nx.is_tensor(x) do
@@ -80,7 +85,7 @@ defmodule ExVision.Utils do
 
   @spec image_size(Evision.Mat.t() | Nx.Tensor.t()) :: Types.image_size_t()
   defp image_size(%Evision.Mat{} = x) do
-    {w, h, 3} = Evision.Mat.shape(x)
+    {h, w, 3} = Evision.Mat.shape(x)
     {w, h}
   end
 
@@ -100,6 +105,10 @@ defmodule ExVision.Utils do
       c |> String.downcase() |> String.replace(~r(\ |\'|\-), "_") |> String.to_atom()
     end)
   end
+
+  @spec backend_transfer(tuple()) :: tuple()
+  def backend_transfer(tuple),
+    do: tuple |> Tuple.to_list() |> Enum.map(&Nx.backend_transfer/1) |> List.to_tuple()
 
   defn softmax(x) do
     Nx.divide(Nx.exp(x), Nx.sum(Nx.exp(x)))
