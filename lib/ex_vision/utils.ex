@@ -99,8 +99,8 @@ defmodule ExVision.Utils do
     end)
   end
 
-  @spec backend_transfer(tuple()) :: tuple()
-  def backend_transfer(tuple),
+  @spec onnx_result_backend_transfer(tuple()) :: tuple()
+  def onnx_result_backend_transfer(tuple),
     do: tuple |> Tuple.to_list() |> Enum.map(&Nx.backend_transfer/1) |> List.to_tuple()
 
   defn softmax(x) do

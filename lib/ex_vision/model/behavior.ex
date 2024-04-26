@@ -8,19 +8,20 @@ defmodule ExVision.Model.Behavior do
     @moduledoc false
 
     @enforce_keys [:original_size]
-    defstruct @enforce_keys
+    defstruct @enforce_keys ++ [options: []]
 
-    @type t() :: %__MODULE__{
-            original_size: ExVision.Types.image_size_t()
+    @type t(options_t) :: %__MODULE__{
+            original_size: ExVision.Types.image_size_t(),
+            options: options_t
           }
-  end
 
-  @optional_callbacks [run: 2, preprocessing: 2, postprocessing: 2]
+    @type t() :: t([])
+  end
 
   @callback load() :: ExVision.Model.t()
   @callback run(ExVision.Model.t(), ExVision.Model.input_t()) :: any()
-  @callback preprocessing(ExVision.Model.input_t(), Metadata.t()) :: Nx.Tensor.t()
-  @callback postprocessing(tuple(), Metadata.t()) :: ExVision.Model.output_t()
+  @callback preprocessing(ExVision.Model.input_t(), Metadata.t([any()])) :: Nx.Tensor.t()
+  @callback postprocessing(tuple(), Metadata.t([any()])) :: ExVision.Model.output_t()
 
   @type using_option_t() ::
           {:base_dir, Path.t()} | {:name, String.t()}
@@ -48,6 +49,7 @@ defmodule ExVision.Model.Behavior do
     end
   end
 
+  @spec __using__([using_option_t()]) :: Macro.t()
   defmacro __using__(opts) do
     module = __CALLER__.module
 
@@ -61,7 +63,8 @@ defmodule ExVision.Model.Behavior do
     categories = if File.exists?(categories_file), do: categories_file |> Utils.load_categories()
 
     categories_spec =
-      unless is_nil(categories), do: Bunch.Typespec.enum_to_alternative(categories)
+      unless is_nil(categories),
+        do: categories |> Enum.uniq() |> Bunch.Typespec.enum_to_alternative()
 
     quote do
       @before_compile ExVision.Model.Behavior
@@ -93,7 +96,7 @@ defmodule ExVision.Model.Behavior do
         image
         |> preprocessing(metadata)
         |> then(&Ortex.run(model, &1))
-        |> ExVision.Utils.backend_transfer()
+        |> ExVision.Utils.onnx_result_backend_transfer()
         |> postprocessing(metadata)
       end
 

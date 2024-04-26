@@ -1,35 +1,21 @@
-<!-- livebook:{"file_entries":[{"name":"cat.jpg","type":"attachment"}]} -->
+<!-- livebook:{"app_settings":{"access_type":"public","show_source":true,"slug":"ex-vision-master-demo","zero_downtime":true},"file_entries":[{"name":"cat.jpg","type":"attachment"}]} -->
 
 # ExVision master demo
 
 ```elixir
+path = "/Users/danieljod/Documents/ex_vision"
+
 Mix.install(
   [
-    {:ex_vision, path: Path.join(__DIR__, "../")},
+    {:ex_vision, path: path},
     :kino,
     :kino_bumblebee,
     :stb_image,
     :exla,
-    :plug,
-    :plug_cowboy,
     :image
   ],
   config: [nx: [default_backend: EXLA.Backend]]
 )
-
-defmodule DocsPlug do
-  use Plug.Builder
-
-  plug(Plug.Static, from: Path.join(__DIR__, "../doc/"), at: "/")
-end
-
-{:ok, _} =
-  Supervisor.start_link(
-    [
-      {Plug.Cowboy, plug: DocsPlug, scheme: :http, options: [port: 55556]}
-    ],
-    strategy: :one_for_one
-  )
 ```
 
 ## ExVision introduction
@@ -42,6 +28,8 @@ ExVision is a collection of models with easy to use API and descriptive output f
 It uses [Ortex](https://www.github.com/elixir-nx/ortex) under the hood to run it's predefined models.
 
 The main objective of ExVision is ease of use. This sacrifices some control over the model but allows you to get started using predefined models in seconds. That approach should allow an average Elixir Developer to quickly introduce some AI into their app, just like that.
+
+<!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
 alias ExVision.Classification.MobileNetV3, as: Classifier
@@ -82,12 +70,24 @@ A big point of ExVision over using the models directly has to be documentation a
 Let's put it into practice and run some predictions on a sample image of the cat.
 This code is intentionally using some calls to `dbg/1` macro in order to aid with the understanding of these formats.
 
-However, let's start with loading our test suspect.
+However, let's start with loading our test suspect. In the next cell, you can provide your own image that will be used as an example in this notebook. If you don't have anything handy, we're also providing a default image of a cat.
+
+<!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-# Feel free to include your own image here
-cat_path = Path.join(__DIR__, "files/cat.jpg")
-cat_image = Image.open!(cat_path)
+input = Kino.Input.image(~c"Image to evaluate", format: :jpeg)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+img_path =
+  case Kino.Input.read(input) do
+    nil -> Path.join(path, "examples/files/cat.jpg")
+    %{file_ref: image} -> Kino.Input.file_path(image)
+  end
+
+image = Image.open!(img_path)
 ```
 
 ### Image classification
@@ -100,9 +100,18 @@ Usually however, the class with the highest probability is the category you shou
 
 #### Code example
 
+In this example, we will try to find out the most likely class that the provided image could belong to. In order to do this, we will:
+
+1. Use the image classifier to gather predictions
+2. Sort the predictions
+3. Take 10 of the most likely ones
+4. Plot the results
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
 ```elixir
 predictions =
-  cat_image
+  image
   # run inference
   |> then(&Classifier.run(classifier, &1))
   # sort the dictionary by the probability of the prediction
@@ -119,7 +128,7 @@ scored_list = Kino.Bumblebee.ScoredList.new(predictions)
 Kino.Layout.grid(
   [
     Kino.Layout.grid([
-      cat_image,
+      image,
       Kino.Text.new("This image shows an object of class `#{Atom.to_string(top_prediction)}`")
     ]),
     Kino.Layout.grid([Kino.Text.new("Class probabilities"), scored_list])
@@ -139,23 +148,26 @@ By default, ExVision will discard extremely low probability bounding boxes (with
 
 In this example, we will draw a rectangle around the biggest object in the image. In order to do this, we will perform the following operations:
 
-* Use the object detector to get the bounding boxes
-* Find the bounding box with the biggest total area
-* Draw a rectangle around the the region indicated by that bounding box
+1. Use the object detector to get the bounding boxes
+2. Find the bounding box with the biggest total area
+3. Draw a rectangle around the the region indicated by that bounding box
+
+<!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
 alias ExVision.Detection.Ssdlite320_MobileNetv3.BBox
 
-cat_img = cat_path |> Image.open!()
-
+# apply the model
 prediction =
-  cat_path
+  image
   |> then(&Detector.run(detector, &1))
-  |> Enum.max_by(fn %BBox{} = bbox -> BBox.width(bbox) * BBox.height(bbox) end)
+  # Find the biggest object by area
+  |> Enum.max_by(&(BBox.width(&1) * BBox.height(&1)))
   |> dbg()
 
+# Render an image
 Image.Draw.rect!(
-  cat_img,
+  image,
   prediction.x1,
   prediction.y1,
   BBox.width(prediction),
@@ -170,17 +182,24 @@ Image.Draw.rect!(
 
 The goal of semantic segmentation is to generate per-pixel masks stating if the object of the given class is in the corresponding pixel.
 
-In ExVision, the output of semantic segmentation models is a mapping of category to a binary per-pixel binary mask. In contrast to previous models, we're not getting scores.
+In ExVision, the output of semantic segmentation models is a mapping of category to a binary per-pixel binary mask. In contrast to previous models, we're not getting scores. Each pixel is always assigned the most probable class.
+
+### Code example
+
+In this example, we will feed the image to the semantic segmentation model and inspect some of the masks provided by the model.
+
+<!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-nx_image = Image.to_nx!(cat_image)
+nx_image = Image.to_nx!(image)
 uniform_black = 0 |> Nx.broadcast(Nx.shape(nx_image)) |> Nx.as_type(Nx.type(nx_image))
 
 predictions =
-  cat_image
+  image
   |> then(&Segmentation.run(segmentation, &1))
+  # Filter out masks covering less than 5% of the total image area
   |> Enum.filter(fn {_label, mask} ->
-    (mask |> Nx.sum() |> Nx.to_number()) / Nx.flat_size(mask) > 0.05
+    mask |> Nx.mean() |> Nx.to_number() > 0.05
   end)
   |> dbg()
 
