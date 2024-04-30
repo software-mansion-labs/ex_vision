@@ -1,0 +1,255 @@
+<!-- livebook:{"file_entries":[{"name":"big-buck-bunny.h264","type":"attachment"}]} -->
+
+# ExVision x Membrane integration demonstration
+
+```elixir
+path = "/Users/danieljod/Documents/ex_vision"
+
+Mix.install(
+  [
+    {:ex_vision, path: path},
+    :image,
+    :membrane_core,
+    :membrane_file_plugin,
+    :membrane_flv_plugin,
+    :membrane_h26x_plugin,
+    :membrane_h264_ffmpeg_plugin,
+    :membrane_ffmpeg_swscale_plugin,
+    :membrane_mp4_plugin,
+    :kino,
+    :kino_membrane
+  ],
+  config: [nx: [default_backend: EXLA.Backend]]
+)
+```
+
+## Introduction
+
+In this example we will showcase ExVision by integrating it into media processing pipeline using [Membrane Framework](https://membrane.stream). This livebook can be treated as a tutorial on this process.
+
+### Prerequisites
+
+* We will be using [Membrane Framework](https://membrane.stream), so basic familiarity with this framework is advised
+* Basic familiarity with ExVision
+
+### Contents of this tutorial
+
+You will learn how to write a [Membrane Filter element](https://membrane.stream/learn/get_started_with_membrane/3) that makes use of one of the ExVision's models, using an example of object detection.
+
+## Integrate with Membrane
+
+The main part of integrating with Membrane is implementing a Filter - an element which is responsible for applying a transformation on each frame in the stream.
+
+But before we dive into the code, here are a few tips that will make it both easier to understand and easier to modify for your own usecase:
+
+* **It's useful to constrain an accepted format on input and output pads to `%Membrane.RawVideo{pixel_format: :RGB}`.**
+
+  This format is equivalent to a stream of raw frames in RGB format, which is what most models are trained to accept. By setting this constraint, Membrane will be able to perform a sanity check to highlight errors some obvious errors in the processing pipeline.
+
+* **Model should be loaded in the `handle_setup/2` callback and stored in the element state.**
+
+  It may be tempting to initialize the model in `handle_init/2` but it will delay the initialization of the pipeline, as it runs in the pipeline process, not the element process. It's however even more important to not initialize it in `handle_buffer/3`, as this callback is called for every single frame.
+
+```elixir
+defmodule Membrane.ExVision.Detector do
+  use Membrane.Filter
+
+  alias ExVision.Detection.Ssdlite320_MobileNetv3, as: Model
+  alias ExVision.Detection.Ssdlite320_MobileNetv3.BBox
+
+  # Define both input and output pads
+  # On both, we want to have raw image in RGB
+  def_input_pad(:input,
+    accepted_format: %Membrane.RawVideo{pixel_format: :RGB},
+    flow_control: :auto
+  )
+
+  def_output_pad(:output,
+    accepted_format: %Membrane.RawVideo{pixel_format: :RGB},
+    flow_control: :auto
+  )
+
+  defmodule State do
+    @moduledoc """
+    A struct describing the state of the detector element
+    """
+    defstruct [:detector]
+
+    @type t() :: %__MODULE__{
+            detector: Model.t() | nil
+          }
+  end
+
+  @impl true
+  def handle_init(_ctx, _opts) do
+    {[], %State{}}
+  end
+
+  @impl true
+  def handle_setup(_ctx, state) do
+    detector = Model.load()
+    {[], %{state | detector: detector}}
+  end
+
+  @impl true
+  def handle_buffer(:input, buffer, ctx, %State{detector: detector} = state) do
+    {:ok, image} = buffer_to_image(buffer, ctx.pads.input.stream_format)
+
+    # Run inference and filter out unlikely bounding boxes
+    predictions =
+      detector
+      |> Model.run(image)
+      |> Enum.filter(fn %BBox{score: score} -> score > 0.3 end)
+
+    # For each bounding box, represent it as a rectangle on the 
+    image =
+      Enum.reduce(predictions, image, fn %BBox{} = prediction, image ->
+        image
+        |> Image.Draw.rect!(
+          prediction.x1,
+          prediction.y1,
+          BBox.width(prediction),
+          BBox.height(prediction),
+          fill: false,
+          color: :red,
+          stroke_width: 5
+        )
+      end)
+
+    buffer = fill_buffer_with_image(image, buffer)
+
+    {[buffer: {:output, buffer}], state}
+  end
+
+  defp buffer_to_image(%Membrane.Buffer{payload: payload}, %Membrane.RawVideo{
+         width: w,
+         height: h
+       }) do
+    payload
+    |> Nx.from_binary(:u8)
+    |> Nx.reshape({w, h, 3}, names: [:width, :height, :colors])
+    |> Image.from_nx()
+  end
+
+  defp fill_buffer_with_image(image, buffer) do
+    image |> Image.to_nx!(shape: :hwc) |> Nx.to_binary() |> then(&%{buffer | payload: &1})
+  end
+end
+```
+
+### Create the processing pipeline
+
+<!-- livebook:{"break_markdown":true} -->
+
+The next step is to define a processing pipeline. In this case, we will read the video from the file, feed it through our `Detector` element and then transform it back into a video in `.mp4` format.
+
+The details of this process can be quite difficult to understand and very much depend on the input and output methods. If you're comfortable in this field, feel free to skip the next section with the explanation of this pipeline.
+
+```elixir
+defmodule Pipeline do
+  use Membrane.Pipeline
+
+  @impl true
+  def handle_init(_ctx, output_file) do
+    structure =
+      child(%Membrane.File.Source{
+        chunk_size: 1024,
+        location: Path.join(__DIR__, "files/big-buck-bunny-short.h264")
+      })
+      |> child(%Membrane.H264.Parser{
+        generate_best_effort_timestamps: %{framerate: {25, 1}}
+      })
+      |> child(Membrane.H264.FFmpeg.Decoder)
+      |> child(%Membrane.FFmpeg.SWScale.PixelFormatConverter{format: :RGB})
+      |> child(Membrane.ExVision.Detector)
+      |> child(%Membrane.FFmpeg.SWScale.PixelFormatConverter{format: :I420})
+      |> child(%Membrane.H264.FFmpeg.Encoder{profile: :baseline})
+      |> child(%Membrane.H264.Parser{
+        output_stream_structure: :avc1
+      })
+      |> child(Membrane.MP4.Muxer.ISOM)
+      |> child(:sink, %Membrane.File.Sink{
+        location: output_file
+      })
+
+    {[spec: structure], %{}}
+  end
+
+  # Terminate the process after the processing is finished
+  @impl true
+  def handle_element_end_of_stream(:sink, :input, _ctx, state) do
+    Membrane.Pipeline.terminate(self(), asynchronous?: true)
+    {[], state}
+  end
+
+  @impl true
+  def handle_element_end_of_stream(_element, _pad, _ctx, state), do: {[], state}
+end
+```
+
+Membrane pipelines will not automatically terminate after they finish processing, but this is the desired behaviour. Therefore, we will implement the termination of the pipeline process once we receive `end_of_stream` signal on the `:input` pad of our File sink, by making use of the `handle_element_end_of_stream/4` callback.
+
+## Explanation of the processing pipeline
+
+The pipeline does the following transformations in order to obtain the RGB images for processing:
+
+1. Reads the file from the disk
+2. Parses it as H264 bytestream
+3. Decodes H264, obtaining raw images in YUV420
+4. Converts the pixel formats from yuv420 to rgb
+5. Applies our `Detector` element
+6. Transforms the frames back to yuv420
+7. Encodes the frames to H264 and coverts them to `:avc` format in preparation for muxing into MP4
+8. Muxes (puts into the container) the H264 stream to `.mp4` format
+9. Writes the resulting bytestream to the file on the disk
+
+## Run inference
+
+We have written the Filter responsible for applying our model and the full processing pipeline! It's time to make use of it. Let's define the location of our output file and execute the code
+
+```elixir
+output_file = Path.join("/tmp", "#{DateTime.utc_now()}.mp4")
+{:ok, _supervisor_pid, pipeline_pid} = Membrane.Pipeline.start(Pipeline, output_file)
+```
+
+## Download the results
+
+The pipeline is running in a separate process, therefore the previous call wasn't blocking. Our output file is not ready until the pipeline finishes and therefore terminates.
+
+In order to get notified about the pipeline terminating, let's make use of `Process.monitor/1`
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+monitor = Process.monitor(pipeline_pid)
+
+receive do
+  {:DOWN, ^monitor, :process, _pid, _reson} -> :ok
+end
+```
+
+After the cell above has finished evaluating, our output file should already be all ready.
+
+Let's write some code to fetch it from the notebook.
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+content_btn =
+  Kino.Download.new(fn -> File.read!(output_file) end,
+    label: "Download the video",
+    filename: "video.mp4"
+  )
+
+delete_btn = Kino.Control.button("Delete the file permanently")
+no_file_msg = Kino.Text.new("The file doesn't exist")
+
+Kino.listen(delete_btn, fn _data ->
+  File.rm!(output_file)
+  Kino.render(no_file_msg)
+end)
+
+if File.exists?(output_file),
+  do: Kino.Layout.grid([content_btn, delete_btn], gap: 10),
+  else: no_file_msg
+```

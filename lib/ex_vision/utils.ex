@@ -30,10 +30,10 @@ defmodule ExVision.Utils do
 
   @spec convert_channel_spec(Nx.Tensor.t(), channel_spec_t()) :: Nx.Tensor.t()
   def convert_channel_spec(tensor, target) do
-    if guess_channel_spec(tensor) != target do
-      Nx.transpose(tensor, axes: [2, 0, 1])
-    else
+    if guess_channel_spec(tensor) == target do
       tensor
+    else
+      Nx.transpose(tensor, axes: [2, 0, 1])
     end
   end
 
