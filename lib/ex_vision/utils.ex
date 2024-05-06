@@ -9,12 +9,15 @@ defmodule ExVision.Utils do
   @type channel_spec_t() :: :first | :last
   @type pixel_size_t() :: 8 | 16 | 32 | 64
   @type pixel_type_t() :: {:u | :f, pixel_size_t()}
-  @type load_image_option_t() :: {:size, {number(), number()}} | {:pixel_type, pixel_type_t()}
+  @type load_image_option_t() ::
+          {:size, {number(), number()}}
+          | {:pixel_type, pixel_type_t()}
+          | {:channel_spec, channel_spec_t()}
 
   @spec load_image(ExVision.Model.input_t(), [load_image_option_t()]) ::
           {Types.image_size_t(), Nx.Tensor.t()}
   def load_image(image, options \\ []) do
-    options = Keyword.validate!(options, [:size, pixel_type: {:f, 32}])
+    options = Keyword.validate!(options, [:size, pixel_type: {:f, 32}, channel_spec: :first])
     target_size = Keyword.get(options, :size)
 
     {original_size, image} = image |> read_image(target_size)
@@ -22,7 +25,7 @@ defmodule ExVision.Utils do
     image =
       image
       |> convert_pixel_type(options[:pixel_type])
-      |> convert_channel_spec(:first)
+      |> convert_channel_spec(options[:channel_spec])
       |> Nx.new_axis(0)
 
     {original_size, image}
@@ -69,6 +72,10 @@ defmodule ExVision.Utils do
   @spec read_image(ExVision.Model.input_t(), Types.image_size_t()) :: Nx.Tensor.t()
   defp read_image(%Vix.Vips.Image{} = image, t_size) do
     image |> Image.to_nx!() |> read_image(t_size)
+  end
+
+  defp read_image(x, nil) when Nx.is_tensor(x) do
+    {image_size(x), x}
   end
 
   defp read_image(x, t_size) when Nx.is_tensor(x) do

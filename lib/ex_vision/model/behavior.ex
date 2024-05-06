@@ -23,8 +23,7 @@ defmodule ExVision.Model.Behavior do
   @callback preprocessing(ExVision.Model.input_t(), Metadata.t([any()])) :: Nx.Tensor.t()
   @callback postprocessing(tuple(), Metadata.t([any()])) :: ExVision.Model.output_t()
 
-  @type using_option_t() ::
-          {:base_dir, Path.t()} | {:name, String.t()}
+  @type using_option_t() :: {:base_dir, Path.t()} | {:name, String.t()}
 
   defp module_to_name(module),
     do:
@@ -125,8 +124,21 @@ defmodule ExVision.Model.Behavior do
         defdelegate run(model, input), to: unquote(module)
 
         @spec as_serving(unquote(module).t()) :: Nx.Serving.t()
-        def as_serving(_model) do
-          raise "This feature is not yet supported"
+        def as_serving(%unquote(module){model: model}) do
+          Ortex.Serving
+          |> Nx.Serving.new(model)
+          |> Nx.Serving.client_preprocessing(fn input ->
+            # TODO: get rid of repeated code, handle different input types
+            {original_size, img} = ExVision.Utils.load_image(input, size: {224, 224})
+            metadata = %Metadata{original_size: original_size}
+            img = Nx.squeeze(img)
+            {Nx.Batch.stack([img]), metadata}
+          end)
+          |> Nx.Serving.client_postprocessing(fn {result, _server_metadata}, metadata ->
+            result
+            |> ExVision.Utils.onnx_result_backend_transfer()
+            |> unquote(module).postprocessing(metadata)
+          end)
         end
       end
     end
