@@ -6,24 +6,40 @@ defmodule ExVision.UtilsTest do
   @categories_path Path.join(__DIR__, "../assets/categories.json")
   @img_size {360, 543}
 
-  describe "load_image/2" do
-    test "" do
+  describe "load_image/2 loads from" do
+    test "path" do
       assert {@img_size, img} = Utils.load_image(@img_path)
       assert Nx.shape(img) == {1, 3, 360, 543}
       assert Nx.type(img) == {:f, 32}
     end
 
-    test "w/ resize" do
+    test ":image library image" do
+      img = Image.open!(@img_path)
+      assert {@img_size, img_from_image} = Utils.load_image(img)
+      assert {@img_size, img_from_path} = Utils.load_image(@img_path)
+      assert Nx.equal(img_from_image, img_from_path)
+    end
+
+    test "Nx.Tensor" do
+      tensor = @img_path |> Image.open!() |> Image.to_nx!(shape: :hwc)
+      assert {@img_size, img_from_tensor} = Utils.load_image(tensor)
+      assert {@img_size, img_from_path} = Utils.load_image(@img_path)
+      assert Nx.equal(img_from_tensor, img_from_path)
+    end
+  end
+
+  describe "load_image/2 handles option to" do
+    test "resize" do
       assert {@img_size, img} = Utils.load_image(@img_path, size: {30, 30})
       assert Nx.shape(img) == {1, 3, 30, 30}
     end
 
-    test "w/ channel spec change" do
+    test "channel spec change" do
       assert {@img_size, img} = Utils.load_image(@img_path, channel_spec: :last)
       assert Nx.shape(img) == {1, 360, 543, 3}
     end
 
-    test "w/ pixel format change" do
+    test "pixel format change" do
       for t <- [{:u, 8}, {:f, 16}] do
         assert {@img_size, img} = Utils.load_image(@img_path, pixel_type: t)
         assert Nx.type(img) == t, "assertion failed for #{inspect(t)}"

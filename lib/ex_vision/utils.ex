@@ -79,7 +79,14 @@ defmodule ExVision.Utils do
   end
 
   defp read_image(x, t_size) when Nx.is_tensor(x) do
-    {image_size(x), NxImage.resize(x, t_size, channels: guess_channel_spec(x))}
+    size = image_size(x)
+
+    x =
+      if is_nil(t_size) or size == t_size,
+        do: x,
+        else: NxImage.resize(x, t_size, channels: guess_channel_spec(x))
+
+    {size, x}
   end
 
   defp read_image(x, t_size) when is_binary(x) do

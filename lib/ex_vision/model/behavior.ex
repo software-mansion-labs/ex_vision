@@ -80,7 +80,19 @@ defmodule ExVision.Model.Behavior do
       @impl true
       @spec load() :: t()
       def load() do
-        %__MODULE__{model: Ortex.load(@model_path)}
+        %__MODULE__{model: Ortex.load(@model_path, [:coreml, :cuda, :cpu])}
+      end
+
+      @spec as_serving(t()) :: Nx.Serving.t()
+      def as_serving(model \\ load()) do
+        ExVision.Model.as_serving(model)
+      end
+
+      @spec child_spec(keyword()) :: tuple()
+      def child_spec(opts) do
+        opts
+        |> Keyword.put(:serving, as_serving())
+        |> Nx.Serving.child_spec()
       end
 
       @doc """
@@ -125,8 +137,10 @@ defmodule ExVision.Model.Behavior do
 
         @spec as_serving(unquote(module).t()) :: Nx.Serving.t()
         def as_serving(%unquote(module){model: model}) do
+          # build the serving
           Ortex.Serving
           |> Nx.Serving.new(model)
+          # Add preprocessing - this will handle our inputs and load it for the model
           |> Nx.Serving.client_preprocessing(fn input ->
             # TODO: get rid of repeated code, handle different input types
             {original_size, img} = ExVision.Utils.load_image(input, size: {224, 224})
@@ -134,6 +148,7 @@ defmodule ExVision.Model.Behavior do
             img = Nx.squeeze(img)
             {Nx.Batch.stack([img]), metadata}
           end)
+          # post process the results
           |> Nx.Serving.client_postprocessing(fn {result, _server_metadata}, metadata ->
             result
             |> ExVision.Utils.onnx_result_backend_transfer()
