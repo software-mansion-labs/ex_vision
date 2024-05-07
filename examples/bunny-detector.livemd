@@ -87,8 +87,7 @@ defmodule Membrane.ExVision.Detector do
 
   @impl true
   def handle_setup(_ctx, state) do
-    detector = Model.load()
-    {[], %{state | detector: detector}}
+    {[], %State{state | detector: Model.load()}}
   end
 
   @impl true
@@ -99,6 +98,7 @@ defmodule Membrane.ExVision.Detector do
     predictions =
       detector
       |> Model.run(image)
+      # filter out butterfly bounding boxes
       |> Enum.filter(fn %BBox{score: score} -> score > 0.3 end)
 
     # For each bounding box, represent it as a rectangle on the 
@@ -116,9 +116,7 @@ defmodule Membrane.ExVision.Detector do
         )
       end)
 
-    buffer = fill_buffer_with_image(image, buffer)
-
-    {[buffer: {:output, buffer}], state}
+    {[buffer: {:output, fill_buffer_with_image(image, buffer)}], state}
   end
 
   defp buffer_to_image(%Membrane.Buffer{payload: payload}, %Membrane.RawVideo{
@@ -154,10 +152,14 @@ defmodule Pipeline do
     structure =
       child(%Membrane.File.Source{
         chunk_size: 1024,
-        location: Path.join(__DIR__, "files/big-buck-bunny-short.h264")
+        location: Path.join(__DIR__, "files/big-buck-bunny-short.mp4"),
+        seekable?: true
       })
+      |> child(:demuxer, %Membrane.MP4.Demuxer.ISOM{optimize_for_non_fast_start?: true})
+      |> via_out(Pad.ref(:output, 1))
       |> child(%Membrane.H264.Parser{
-        generate_best_effort_timestamps: %{framerate: {25, 1}}
+        output_stream_structure: :annexb
+        # generate_best_effort_timestamps: %{framerate: {25, 1}}
       })
       |> child(Membrane.H264.FFmpeg.Decoder)
       |> child(%Membrane.FFmpeg.SWScale.PixelFormatConverter{format: :RGB})
@@ -189,20 +191,6 @@ end
 
 Membrane pipelines will not automatically terminate after they finish processing, but this is the desired behaviour. Therefore, we will implement the termination of the pipeline process once we receive `end_of_stream` signal on the `:input` pad of our File sink, by making use of the `handle_element_end_of_stream/4` callback.
 
-## Explanation of the processing pipeline
-
-The pipeline does the following transformations in order to obtain the RGB images for processing:
-
-1. Reads the file from the disk
-2. Parses it as H264 bytestream
-3. Decodes H264, obtaining raw images in YUV420
-4. Converts the pixel formats from yuv420 to rgb
-5. Applies our `Detector` element
-6. Transforms the frames back to yuv420
-7. Encodes the frames to H264 and coverts them to `:avc` format in preparation for muxing into MP4
-8. Muxes (puts into the container) the H264 stream to `.mp4` format
-9. Writes the resulting bytestream to the file on the disk
-
 ## Run inference
 
 We have written the Filter responsible for applying our model and the full processing pipeline! It's time to make use of it. Let's define the location of our output file and execute the code
@@ -210,22 +198,44 @@ We have written the Filter responsible for applying our model and the full proce
 ```elixir
 output_file = Path.join("/tmp", "#{DateTime.utc_now()}.mp4")
 {:ok, _supervisor_pid, pipeline_pid} = Membrane.Pipeline.start(Pipeline, output_file)
+
+Kino.nothing()
 ```
+
+## Explanation of the processing pipeline
+
+The pipeline does the following transformations in order to obtain the RGB images for processing:
+
+1. Reads the file from the disk
+2. Demuxes it from the MP4, resulting in H264 stream structured using AVC1 format
+3. Parses it as H264 and coverts the structure to Annex B (nalu is delimited by `{0,0,1}`)
+4. Decodes H264, obtaining raw images in YUV420
+5. Converts the pixel formats from yuv420 to rgb
+6. Applies our `Detector` element
+7. Transforms the frames back to yuv420
+8. Encodes the frames to H264 and coverts them to `:avc` format in preparation for muxing into MP4
+9. Muxes (puts into the container) the H264 stream to `.mp4` format
+10. Writes the resulting bytestream to the file on the disk
 
 ## Download the results
 
 The pipeline is running in a separate process, therefore the previous call wasn't blocking. Our output file is not ready until the pipeline finishes and therefore terminates.
 
-In order to get notified about the pipeline terminating, let's make use of `Process.monitor/1`
+In order to get notified about the pipeline terminating, we will make use of `Process.monitor/1`
 
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
 monitor = Process.monitor(pipeline_pid)
 
-receive do
-  {:DOWN, ^monitor, :process, _pid, _reson} -> :ok
-end
+{time, _result} =
+  :timer.tc(fn ->
+    receive do
+      {:DOWN, ^monitor, :process, _pid, _reson} -> :ok
+    end
+  end)
+
+Kino.Text.new("Operation took #{time / 1_000_000} seconds")
 ```
 
 After the cell above has finished evaluating, our output file should already be all ready.

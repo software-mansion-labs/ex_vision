@@ -6,9 +6,11 @@
 Mix.install(
   [
     {:ex_vision, path: Path.join(__DIR__, "..")},
-    :kino
+    :kino,
+    :evision
   ],
-  config: [nx: [default_backend: EXLA.Backend]]
+  config: [nx: [default_backend: EXLA.Backend]],
+  force: true
 )
 ```
 
@@ -21,18 +23,18 @@ model = Model.load()
 ```
 
 ```elixir
-cat = Path.join(__DIR__, "files/cat.jpg")
+path = Path.join(__DIR__, "files/cat.jpg")
 ```
 
 ```elixir
-output = Model.run(model, cat)
+output = Model.run(model, path)
 ```
 
 ```elixir
 %{x1: x1, y1: y1, x2: x2, y2: y2} = output |> Enum.filter(&(&1.score > 0.9)) |> hd()
 rect = {round(x1), round(y1), round(x2) - round(x1), round(y2) - round(y1)}
 
-image = cat |> Evision.imread() |> Evision.cvtColor(Evision.Constant.cv_COLOR_BGR2RGB())
+image = path |> Evision.imread() |> Evision.cvtColor(Evision.Constant.cv_COLOR_BGR2RGB())
 image = Evision.rectangle(image, rect, {255, 0, 0})
 
 dbg(image.shape)
@@ -41,7 +43,12 @@ Kino.Image.new(Evision.Mat.to_nx(image))
 ```
 
 ```elixir
-form = Kino.Control.form([image: Kino.Input.image("Image", format: :jpeg)], submit: "Evaluate")
+form =
+  Kino.Control.form([image: Kino.Input.image("Image", format: :jpeg)],
+    submit: "Evaluate",
+    data: [image: path]
+  )
+
 frame = Kino.Frame.new()
 
 Kino.listen(form, fn %{data: %{image: %{file_ref: image}}} ->
@@ -50,8 +57,8 @@ Kino.listen(form, fn %{data: %{image: %{file_ref: image}}} ->
   outputs =
     image
     |> then(&Model.run(model, &1))
-
-  # |> Enum.filter(& &1.score > 0.8)
+    |> Enum.filter(&(&1.score > 0.8))
+    |> dbg()
 
   image = image |> Evision.imread() |> Evision.cvtColor(Evision.Constant.cv_COLOR_BGR2RGB())
 

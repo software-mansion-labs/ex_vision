@@ -25,7 +25,7 @@ defmodule ExVision.Model.Case do
         ]
       end
 
-      describe "standalone model" do
+      describe "standalone usage" do
         test "load/0", %{model: model} do
           assert model
         end
@@ -37,7 +37,7 @@ defmodule ExVision.Model.Case do
         end
       end
 
-      describe "serving model" do
+      describe "usage as Nx.Serving" do
         test "loads", %{serving: s} do
           assert s
         end

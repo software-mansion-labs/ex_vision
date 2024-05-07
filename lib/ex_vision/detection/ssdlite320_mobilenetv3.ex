@@ -16,6 +16,11 @@ defmodule ExVision.Detection.Ssdlite320_MobileNetv3 do
   @type output_t() :: [BBox.t(category_t())]
 
   @impl true
+  def preprocessing(img, _metadata) do
+    ExVision.Utils.resize(img, {224, 224})
+  end
+
+  @impl true
   def postprocessing({bboxes, scores, labels}, metadata) do
     {h, w} = metadata.original_size
     scale_x = w / 224

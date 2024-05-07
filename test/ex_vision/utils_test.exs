@@ -4,44 +4,38 @@ defmodule ExVision.UtilsTest do
 
   @img_path Path.join(__DIR__, "../assets/cat.jpg")
   @categories_path Path.join(__DIR__, "../assets/categories.json")
-  @img_size {360, 543}
 
   describe "load_image/2 loads from" do
     test "path" do
-      assert {@img_size, img} = Utils.load_image(@img_path)
+      assert img = Utils.load_image(@img_path)
       assert Nx.shape(img) == {1, 3, 360, 543}
       assert Nx.type(img) == {:f, 32}
     end
 
     test ":image library image" do
       img = Image.open!(@img_path)
-      assert {@img_size, img_from_image} = Utils.load_image(img)
-      assert {@img_size, img_from_path} = Utils.load_image(@img_path)
+      assert img_from_image = Utils.load_image(img)
+      assert img_from_path = Utils.load_image(@img_path)
       assert Nx.equal(img_from_image, img_from_path)
     end
 
     test "Nx.Tensor" do
       tensor = @img_path |> Image.open!() |> Image.to_nx!(shape: :hwc)
-      assert {@img_size, img_from_tensor} = Utils.load_image(tensor)
-      assert {@img_size, img_from_path} = Utils.load_image(@img_path)
+      assert img_from_tensor = Utils.load_image(tensor)
+      assert img_from_path = Utils.load_image(@img_path)
       assert Nx.equal(img_from_tensor, img_from_path)
     end
   end
 
   describe "load_image/2 handles option to" do
-    test "resize" do
-      assert {@img_size, img} = Utils.load_image(@img_path, size: {30, 30})
-      assert Nx.shape(img) == {1, 3, 30, 30}
-    end
-
     test "channel spec change" do
-      assert {@img_size, img} = Utils.load_image(@img_path, channel_spec: :last)
+      assert img = Utils.load_image(@img_path, channel_spec: :last)
       assert Nx.shape(img) == {1, 360, 543, 3}
     end
 
     test "pixel format change" do
       for t <- [{:u, 8}, {:f, 16}] do
-        assert {@img_size, img} = Utils.load_image(@img_path, pixel_type: t)
+        assert img = Utils.load_image(@img_path, pixel_type: t)
         assert Nx.type(img) == t, "assertion failed for #{inspect(t)}"
       end
     end
@@ -145,5 +139,17 @@ defmodule ExVision.UtilsTest do
       |> Enum.map(&String.to_atom/1)
 
     assert Utils.load_categories(@categories_path) == expected_categories
+  end
+
+  describe "convert_channel_spec/2" do
+    test "converts :last to :first" do
+      input = Nx.iota({1, 2, 3})
+      assert Utils.convert_channel_spec(input, :first) |> Nx.shape() == {3, 1, 2}
+    end
+
+    test "converts :first to :last" do
+      input = Nx.iota({3, 1, 2})
+      assert Utils.convert_channel_spec(input, :last) |> Nx.shape() == {1, 2, 3}
+    end
   end
 end

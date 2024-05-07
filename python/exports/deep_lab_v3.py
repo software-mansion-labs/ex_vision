@@ -24,22 +24,27 @@ with open(categories_file, "w") as f:
 
 onnx_input = torch.rand(1, 3, 224, 224)
 
-torch.onnx.export(
-    model,
-    onnx_input,
-    str(model_file),
-    verbose=False,
-    input_names=["input"],
-    output_names=["output", "aux"],
-    dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
-    export_params=True,
-)
 
 from torchvision.io.image import read_image
 
 cat = read_image("examples/files/cat.jpg")
 batch = transforms(cat).unsqueeze(0)
-
 outputs = model(batch)
 
+torch.onnx.export(
+    model,
+    batch,
+    str(model_file),
+    verbose=False,
+    input_names=["input"],
+    output_names=["output", "aux"],
+    dynamic_axes={
+        "input": {0: "batch_size", 2: "width", 3: "height"},
+        "output": {0: "batch_size", 2: "width", 3: "height"},
+    },
+    export_params=True,
+)
+
+print(transforms)
+print(batch.shape)
 print(outputs)

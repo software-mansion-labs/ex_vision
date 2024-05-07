@@ -3,11 +3,15 @@
 # ExVision demo
 
 ```elixir
-Mix.install([
-  {:ex_vision, ">= 0.0.0", path: Path.join(__DIR__, "..")},
-  :kino,
-  :kino_bumblebee
-])
+Mix.install(
+  [
+    {:ex_vision, ">= 0.0.0", path: Path.join(__DIR__, "..")},
+    :kino,
+    :kino_bumblebee,
+    :exla
+  ],
+  config: [nx: [default_backend: EXLA.Backend]]
+)
 ```
 
 ## Introduction

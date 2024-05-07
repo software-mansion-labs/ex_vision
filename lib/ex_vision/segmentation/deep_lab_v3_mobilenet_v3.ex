@@ -8,6 +8,11 @@ defmodule ExVision.Segmentation.DeepLabV3_MobileNetV3 do
   @type output_t() :: %{category_t() => Nx.Tensor.t()}
 
   @impl true
+  def preprocessing(img, _metdata) do
+    ExVision.Utils.resize(img, {224, 224})
+  end
+
+  @impl true
   @spec postprocessing(tuple(), ExVision.Model.Behavior.Metadata.t()) :: output_t()
   def postprocessing({out, _aux}, metadata) do
     cls_per_pixel =

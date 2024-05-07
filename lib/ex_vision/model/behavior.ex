@@ -20,7 +20,7 @@ defmodule ExVision.Model.Behavior do
 
   @callback load() :: ExVision.Model.t()
   @callback run(ExVision.Model.t(), ExVision.Model.input_t()) :: any()
-  @callback preprocessing(ExVision.Model.input_t(), Metadata.t([any()])) :: Nx.Tensor.t()
+  @callback preprocessing(Nx.Tensor.t(), Metadata.t([any()])) :: Nx.Tensor.t()
   @callback postprocessing(tuple(), Metadata.t([any()])) :: ExVision.Model.output_t()
 
   @type using_option_t() :: {:base_dir, Path.t()} | {:name, String.t()}
@@ -80,7 +80,7 @@ defmodule ExVision.Model.Behavior do
       @impl true
       @spec load() :: t()
       def load() do
-        %__MODULE__{model: Ortex.load(@model_path, [:coreml, :cuda, :cpu])}
+        %__MODULE__{model: Ortex.load(@model_path, [:cuda, :coreml, :cpu])}
       end
 
       @spec as_serving(t()) :: Nx.Serving.t()
@@ -101,8 +101,8 @@ defmodule ExVision.Model.Behavior do
       @impl true
       @spec run(t(), ExVision.Model.input_t()) :: output_t()
       def run(%{model: model} = _model, input) do
-        {original_size, image} = ExVision.Utils.load_image(input, size: {224, 224})
-        metadata = %Metadata{original_size: original_size}
+        image = ExVision.Utils.load_image(input)
+        metadata = %Metadata{original_size: ExVision.Utils.image_size(image)}
 
         image
         |> preprocessing(metadata)
@@ -142,11 +142,17 @@ defmodule ExVision.Model.Behavior do
           |> Nx.Serving.new(model)
           # Add preprocessing - this will handle our inputs and load it for the model
           |> Nx.Serving.client_preprocessing(fn input ->
-            # TODO: get rid of repeated code, handle different input types
-            {original_size, img} = ExVision.Utils.load_image(input, size: {224, 224})
-            metadata = %Metadata{original_size: original_size}
-            img = Nx.squeeze(img)
-            {Nx.Batch.stack([img]), metadata}
+            image = ExVision.Utils.load_image(input)
+            metadata = %Metadata{original_size: ExVision.Utils.image_size(image)}
+
+            batch =
+              image
+              |> unquote(module).preprocessing(metadata)
+              |> Nx.to_list()
+              |> Enum.map(&Nx.tensor/1)
+              |> Nx.Batch.stack()
+
+            {batch, metadata}
           end)
           # post process the results
           |> Nx.Serving.client_postprocessing(fn {result, _server_metadata}, metadata ->

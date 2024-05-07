@@ -15,6 +15,17 @@ defmodule ExVision.Classification.MobileNetV3 do
   @type output_t() :: %{category_t() => number()}
 
   @impl true
+  def preprocessing(image, _metadata) do
+    image
+    |> ExVision.Utils.resize({224, 224})
+    |> NxImage.normalize(
+      Nx.tensor([0.485, 0.456, 0.406]),
+      Nx.tensor([0.229, 0.224, 0.225]),
+      channels: :first
+    )
+  end
+
+  @impl true
   def postprocessing({scores}, _metadata) do
     scores
     |> Nx.backend_transfer()
