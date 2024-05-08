@@ -44,6 +44,7 @@ defmodule ExVision.Mixfile do
       {:axon, "~> 0.6.1"},
       {:exla, ">= 0.0.0"},
       {:image, ">= 0.0.0"},
+      {:req, ">= 0.0.0"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:dialyxir, ">= 0.0.0", only: :dev, runtime: false},
       {:credo, ">= 0.0.0", only: [:dev, :test], runtime: false}
@@ -84,7 +85,8 @@ defmodule ExVision.Mixfile do
         ExVision.Classification,
         ExVision.Detection,
         ExVision.Segmentation,
-        ExVision.Types
+        ExVision.Types,
+        ExVision.Download
       ]
     ]
   end

@@ -1,7 +1,3 @@
-alias ExVision.Detection.Ssdlite320_MobileNetv3, as: Model
+alias ExVision.Cache
 
-cat_path = "examples/files/cat.jpg"
-
-model = Model.load()
-
-model |> ExVision.Model.run(cat_path) |> dbg()
+Cache.get_model_description(ExVision.Classification.MobileNetV3) |> dbg()

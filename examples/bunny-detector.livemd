@@ -29,7 +29,7 @@ In this example we will showcase ExVision by integrating it into media processin
 
 ### Prerequisites
 
-* We will be using [Membrane Framework](https://membrane.stream), so basic familiarity with this framework is advised
+* We will be using [Membrane Framework](https://membrane.stream), so basic familiarity with this framework is highly recommended
 * Basic familiarity with ExVision
 
 ### Contents of this tutorial

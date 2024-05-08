@@ -1,10 +1,10 @@
-defmodule ExVision.Classification.MobileNetV3 do
+defmodule ExVision.Classification.MobileNetV3Small do
   @moduledoc """
   An object detector based on MobileNetV1 Large.
   Exported from `torchvision`.
   Weights from Imagenet 1k.
   """
-  use ExVision.Model.Behavior, base_dir: "models/classification/mobilenet_v3_small"
+  use ExVision.Model.Behavior, base_dir: "models/classification/mobilenetv3small"
 
   require Bunch.Typespec
   alias ExVision.Utils
