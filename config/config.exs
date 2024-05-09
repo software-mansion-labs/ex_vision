@@ -2,6 +2,6 @@ import Config
 
 config :nx, default_backend: EXLA.Backend
 
-config :ortex, Ortex.Native, features: ["coreml"]
+config :logger, level: :debug
 
 import_config "#{config_env()}.exs"

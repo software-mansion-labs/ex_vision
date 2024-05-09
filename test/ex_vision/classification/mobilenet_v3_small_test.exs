@@ -1,6 +1,6 @@
 defmodule ExVision.Classification.MobileNetV3Test do
   @moduledoc false
-  use ExVision.Model.Case, module: ExVision.Classification.MobileNetV3
+  use ExVision.Model.Case, module: ExVision.Classification.MobileNetV3Small
 
   use ExVision.TestUtils
 

@@ -16,7 +16,7 @@ defmodule ExVision.Model.Case do
       alias unquote(opts[:module]), as: Model
 
       setup_all do
-        model = Model.load()
+        {:ok, model} = Model.load()
         serving = ExVision.Model.as_serving(model)
 
         [

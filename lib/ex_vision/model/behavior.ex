@@ -18,7 +18,7 @@ defmodule ExVision.Model.Behavior do
     @type t() :: t([])
   end
 
-  @callback load() :: ExVision.Model.t()
+  @callback load() :: {:ok, ExVision.Model.t()} | {:error, reason :: atom()}
   @callback run(ExVision.Model.t(), ExVision.Model.input_t()) :: any()
   @callback preprocessing(Nx.Tensor.t(), Metadata.t([any()])) :: Nx.Tensor.t()
   @callback postprocessing(tuple(), Metadata.t([any()])) :: ExVision.Model.output_t()
@@ -78,9 +78,10 @@ defmodule ExVision.Model.Behavior do
       Creates the model instance
       """
       @impl true
-      @spec load() :: t()
+      @spec load() :: {:ok, t()} | {:error, reason :: atom()}
       def load() do
-        %__MODULE__{model: Ortex.load(@model_path, [:cuda, :coreml, :cpu])}
+        with {:ok, %{model: path}} <- ExVision.Cache.get_model_path(__MODULE__),
+             do: {:ok, %__MODULE__{model: Ortex.load(path, [:cuda, :coreml, :cpu])}}
       end
 
       @spec as_serving(t()) :: Nx.Serving.t()

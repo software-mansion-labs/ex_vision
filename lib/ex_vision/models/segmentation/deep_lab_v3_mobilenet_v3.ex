@@ -2,7 +2,7 @@ defmodule ExVision.Segmentation.DeepLabV3_MobileNetV3 do
   @moduledoc """
   A semantic segmentation model for MobileNetV3 Backbone. Exported from torchvision.
   """
-  use ExVision.Model.Behavior, base_dir: "models/segmentation/deeplab_v3"
+  use ExVision.Model.Behavior, base_dir: "models/segmentation/deeplabv3_mobilenetv3"
   require Bunch.Typespec
 
   @type output_t() :: %{category_t() => Nx.Tensor.t()}
