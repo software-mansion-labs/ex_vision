@@ -80,8 +80,13 @@ defmodule ExVision.Model.Behavior do
       @impl true
       @spec load() :: {:ok, t()} | {:error, reason :: atom()}
       def load() do
-        with {:ok, %{model: path}} <- ExVision.Cache.get_model_path(__MODULE__),
-             do: {:ok, %__MODULE__{model: Ortex.load(path, [:cuda, :coreml, :cpu])}}
+        with {:ok, %{model: path}} <- ExVision.Cache.get_model_path(__MODULE__) do
+          try do
+            {:ok, %__MODULE__{model: Ortex.load(path, [:cuda, :coreml, :cpu])}}
+          rescue
+            RuntimeError -> {:error, :onnx_load_failure}
+          end
+        end
       end
 
       @spec as_serving(t()) :: Nx.Serving.t()

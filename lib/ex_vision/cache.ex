@@ -50,7 +50,9 @@ defmodule ExVision.Cache do
   defp download_cache_dir(path, cache) do
     with :ok <- cache |> Path.dirname() |> File.mkdir_p(),
          :ok <- download_file(path, cache) do
-      {:ok, %{model: cache}}
+      if File.exists?(cache),
+        do: {:ok, %{model: cache}},
+        else: {:error, :download_failed}
     end
   end
 
@@ -69,14 +71,17 @@ defmodule ExVision.Cache do
   @spec get(URI.t(), keyword()) :: {:ok, Req.Response.t()} | {:error, reason :: atom()}
   defp get(url, options) do
     url
-    |> Req.get!(options)
+    |> Req.get(options)
     |> case do
-      %{status: 200} = resp ->
+      {:ok, %{status: 200}} = resp ->
         {:ok, resp}
 
-      %{status: status} ->
+      {:ok, %{status: status}} ->
         Logger.warning("Request has failed with status #{status}")
         {:error, :failed_to_fetch}
+
+      {:error, _error} ->
+        {:error, :download_failed}
     end
   end
 
