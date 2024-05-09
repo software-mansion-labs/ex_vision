@@ -18,7 +18,10 @@ defmodule ExVision.Model.Behavior do
     @type t() :: t([])
   end
 
-  @callback load() :: {:ok, ExVision.Model.t()} | {:error, reason :: atom()}
+  @type provider_t() :: :cpu | :coreml | :cpu
+  @type load_option_t() :: {:cache_dir, Path.t()} | {:providers, [provider_t()]}
+
+  @callback load([load_option_t()]) :: {:ok, ExVision.Model.t()} | {:error, reason :: atom()}
   @callback run(ExVision.Model.t(), ExVision.Model.input_t()) :: any()
   @callback preprocessing(Nx.Tensor.t(), Metadata.t([any()])) :: Nx.Tensor.t()
   @callback postprocessing(tuple(), Metadata.t([any()])) :: ExVision.Model.output_t()
@@ -78,11 +81,12 @@ defmodule ExVision.Model.Behavior do
       Creates the model instance
       """
       @impl true
-      @spec load() :: {:ok, t()} | {:error, reason :: atom()}
-      def load() do
-        with {:ok, %{model: path}} <- ExVision.Cache.get_model_path(__MODULE__) do
+      def load(options \\ []) do
+        with {:ok, options} <- Keyword.validate(options, [:cache_dir, providers: [:cpu]]),
+             cache_options = Keyword.take(options, [:cache_dir]),
+             {:ok, %{model: path}} <- ExVision.Cache.get(@model_path, options) do
           try do
-            {:ok, %__MODULE__{model: Ortex.load(path, [:cuda, :coreml, :cpu])}}
+            {:ok, %__MODULE__{model: Ortex.load(path, options[:providers])}}
           rescue
             RuntimeError -> {:error, :onnx_load_failure}
           end

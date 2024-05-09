@@ -11,23 +11,23 @@ defmodule ExVision.Cache do
 
   @type cache_entry_t() :: %{model: Path.t()}
 
-  @spec get_model_path(module()) ::
+  @type get_option_t() :: {:cache_path, Path.t()} | {:server_url, String.t() | URI.t()}
+  @spec get(Path.t(), options :: [get_option_t()]) ::
           {:ok, cache_entry_t()} | {:error, reason :: atom()}
-  def get_model_path(model) do
-    with {:ok, path} <- path_for_model(model) do
-      model_path = Path.join(path, "model.onnx")
-      cache_path = Path.join(cache_dir(), model_path)
-      ok? = File.exists?(cache_path)
+  def get(path, options \\ []) do
+    options = Keyword.validate!(options, cache_path: cache_dir(), server_url: server_url())
 
-      if ok? do
-        Logger.info(
-          "Found existing cache entry for #{inspect(model)} at `#{cache_path}`. Loading."
-        )
+    cache_path = Path.join(options[:cache_path], path)
+    ok? = File.exists?(cache_path)
 
-        {:ok, %{model: cache_path}}
-      else
-        Logger.info("Downloading model for #{inspect(model)}")
-        download_cache_dir(model_path, cache_path)
+    if ok? do
+      Logger.debug("Found existing cache entry for #{path}. Loading.")
+
+      {:ok, %{model: cache_path}}
+    else
+      with {:ok, server_url} <- URI.new(options[:server_url]),
+           download_url = URI.append_path(server_url, ensure_backslash(path)) do
+        download_cache_dir(download_url, cache_path)
       end
     end
   end
@@ -45,43 +45,47 @@ defmodule ExVision.Cache do
     end
   end
 
-  @spec download_cache_dir(Path.t(), Path.t()) ::
+  @spec download_cache_dir(URI.t(), Path.t()) ::
           {:ok, cache_entry_t()} | {:error, reason :: any()}
-  defp download_cache_dir(path, cache) do
+  defp download_cache_dir(url, cache) do
     with :ok <- cache |> Path.dirname() |> File.mkdir_p(),
-         :ok <- download_file(path, cache) do
+         :ok <- download_file(url, cache) do
       if File.exists?(cache),
         do: {:ok, %{model: cache}},
         else: {:error, :download_failed}
     end
   end
 
-  @spec download_file(String.t(), Path.t()) :: :ok | {:error, reason :: any()}
-  def download_file(url, target_file_path) do
+  @spec download_file(URI.t(), Path.t()) :: :ok | {:error, reason :: any()}
+  def download_file(%URI{} = url, target_file_path) do
     Logger.debug("Downloading file from `#{url}` and saving to `#{target_file_path}`")
-    url = URI.append_path(server_url(), ensure_backslash(url))
 
     with :ok <- target_file_path |> Path.dirname() |> File.mkdir_p!(),
          target_file = File.stream!(target_file_path),
-         {:ok, _resp} <- get(url, raw: true, into: target_file) do
+         {:ok, _resp} <- make_get_request(url, raw: true, into: target_file) do
       :ok
     end
   end
 
-  @spec get(URI.t(), keyword()) :: {:ok, Req.Response.t()} | {:error, reason :: atom()}
-  defp get(url, options) do
+  defp make_get_request(url, options) do
     url
     |> Req.get(options)
     |> case do
-      {:ok, %{status: 200}} = resp ->
-        {:ok, resp}
+      {:ok, %Req.Response{status: 200}} = resp ->
+        resp
 
-      {:ok, %{status: status}} ->
+      {:ok, %Req.Response{status: 404}} ->
+        {:error, :doesnt_exist}
+
+      {:ok, %Req.Response{status: status}} ->
         Logger.warning("Request has failed with status #{status}")
-        {:error, :failed_to_fetch}
+        {:error, :server_error}
+
+      {:error, %Mint.TransportError{reason: reason}} ->
+        {:error, reason}
 
       {:error, _error} ->
-        {:error, :download_failed}
+        {:error, :connection_failed}
     end
   end
 

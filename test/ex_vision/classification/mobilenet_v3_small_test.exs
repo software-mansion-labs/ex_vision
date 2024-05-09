@@ -1,7 +1,6 @@
 defmodule ExVision.Classification.MobileNetV3Test do
   @moduledoc false
   use ExVision.Model.Case, module: ExVision.Classification.MobileNetV3Small
-
   use ExVision.TestUtils
 
   @expected_result "test/assets/results/classification/mobilenetv3.json"

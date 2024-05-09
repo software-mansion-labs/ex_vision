@@ -45,6 +45,7 @@ defmodule ExVision.Mixfile do
       {:exla, ">= 0.0.0"},
       {:image, ">= 0.0.0"},
       {:req, ">= 0.0.0"},
+      {:mimic, "~> 1.7", only: :test},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:dialyxir, ">= 0.0.0", only: :dev, runtime: false},
       {:credo, ">= 0.0.0", only: [:dev, :test], runtime: false}
