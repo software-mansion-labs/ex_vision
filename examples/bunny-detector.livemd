@@ -87,7 +87,8 @@ defmodule Membrane.ExVision.Detector do
 
   @impl true
   def handle_setup(_ctx, state) do
-    {[], %State{state | detector: Model.load()}}
+    {:ok, detector} = Model.load()
+    {[], %State{state | detector: detector}}
   end
 
   @impl true

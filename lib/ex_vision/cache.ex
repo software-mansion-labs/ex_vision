@@ -6,11 +6,11 @@ defmodule ExVision.Cache do
   require Logger
 
   defp get_cache_dir() do
-    Application.fetch_env!(:ex_vision, :cache_dir)
+    Application.get_env(:ex_vision, :cache_dir, "/tmp/ex_vision/cache")
   end
 
   defp get_server_url() do
-    Application.fetch_env!(:ex_vision, :server_url)
+    Application.get_env(:ex_vision, :server_url, "http://localhost:8000")
   end
 
   @type cache_entry_t() :: %{model: Path.t()}

@@ -32,13 +32,13 @@ The main objective of ExVision is ease of use. This sacrifices some control over
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-alias ExVision.Classification.MobileNetV3, as: Classifier
+alias ExVision.Classification.MobileNetV3Small, as: Classifier
 alias ExVision.Detection.Ssdlite320_MobileNetv3, as: Detector
 alias ExVision.Segmentation.DeepLabV3_MobileNetV3, as: Segmentation
 
-classifier = Classifier.load()
-detector = Detector.load()
-segmentation = Segmentation.load()
+{:ok, classifier} = Classifier.load()
+{:ok, detector} = Detector.load()
+{:ok, segmentation} = Segmentation.load()
 
 Kino.nothing()
 ```
