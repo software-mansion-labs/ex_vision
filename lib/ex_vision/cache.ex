@@ -5,9 +5,13 @@ defmodule ExVision.Cache do
 
   require Logger
 
-  # TODO: add configurable cache directory and server url
-  defp cache_dir(), do: Application.fetch_env!(:ex_vision, :cache_dir)
-  defp server_url(), do: Application.fetch_env!(:ex_vision, :server_url)
+  defp get_cache_dir() do
+    Application.fetch_env!(:ex_vision, :cache_dir)
+  end
+
+  defp get_server_url() do
+    Application.fetch_env!(:ex_vision, :server_url)
+  end
 
   @type cache_entry_t() :: %{model: Path.t()}
 
@@ -15,33 +19,20 @@ defmodule ExVision.Cache do
   @spec get(Path.t(), options :: [get_option_t()]) ::
           {:ok, cache_entry_t()} | {:error, reason :: atom()}
   def get(path, options \\ []) do
-    options = Keyword.validate!(options, cache_path: cache_dir(), server_url: server_url())
+    options =
+      Keyword.validate!(options, cache_path: get_cache_dir(), server_url: get_server_url())
 
     cache_path = Path.join(options[:cache_path], path)
     ok? = File.exists?(cache_path)
 
     if ok? do
       Logger.debug("Found existing cache entry for #{path}. Loading.")
-
-      {:ok, %{model: cache_path}}
+      {:ok, cache_path}
     else
-      with {:ok, server_url} <- URI.new(options[:server_url]),
-           download_url = URI.append_path(server_url, ensure_backslash(path)) do
+      with {:ok, server_url} <- URI.new(options[:server_url]) do
+        download_url = URI.append_path(server_url, ensure_backslash(path))
         download_cache_dir(download_url, cache_path)
       end
-    end
-  end
-
-  defp path_for_model(module) do
-    case Module.split(module) do
-      ["ExVision" | rest] ->
-        rest
-        |> Enum.map(&String.downcase/1)
-        |> Path.join()
-        |> then(&{:ok, &1})
-
-      _otherwise ->
-        {:error, :module_not_supported}
     end
   end
 
@@ -51,7 +42,7 @@ defmodule ExVision.Cache do
     with :ok <- cache |> Path.dirname() |> File.mkdir_p(),
          :ok <- download_file(url, cache) do
       if File.exists?(cache),
-        do: {:ok, %{model: cache}},
+        do: {:ok, cache},
         else: {:error, :download_failed}
     end
   end

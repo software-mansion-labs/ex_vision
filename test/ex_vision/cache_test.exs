@@ -2,13 +2,9 @@ defmodule ExVision.CacheTest do
   use ExUnit.Case, async: false
   use Mimic
 
-  alias ExVision.Classification.MobileNetV3Small, as: Model
   alias ExVision.Cache
 
   @moduletag :tmp_dir
-
-  # TODO: rethink cache tests
-  # I think we should use `:mock` library to mock the heck out of that
 
   setup %{tmp_dir: tmp_dir} do
     app_env_override(:server_url, URI.new!("http://mock_server:8000"))
@@ -16,21 +12,26 @@ defmodule ExVision.CacheTest do
   end
 
   setup ctx do
-    files = Map.get(ctx, :files, %{
-      "/test" => rand_string(256)
-    })
+    files =
+      Map.get(ctx, :files, %{
+        "/test" => rand_string(256)
+      })
 
     stub(Req, :get, fn
-      (%URI{host: "mock_server", port: 8000, path: path}, options) ->
+      %URI{host: "mock_server", port: 8000, path: path}, options ->
         options = Keyword.validate!(options, [:raw, :into])
+
         case Map.fetch(files, path) do
           {:ok, content} ->
             body = Enum.into([content], options[:into])
             {:ok, %Req.Response{status: 200, body: body}}
-          :error -> {:ok, %Req.Response{status: 404}}
+
+          :error ->
+            {:ok, %Req.Response{status: 404}}
         end
 
-      (_uri, _options) -> {:error, %Mint.TransportError{reason: :connection_failed}}
+      _uri, _options ->
+        {:error, %Mint.TransportError{reason: :connection_failed}}
     end)
 
     [files: files]
@@ -39,7 +40,7 @@ defmodule ExVision.CacheTest do
   test "Can download the file", ctx do
     [{path, expected_contents}] = Enum.to_list(ctx.files)
     expected_path = Path.join(ctx.tmp_dir, path)
-    assert {:ok, %{model: ^expected_path}} = Cache.get(path)
+    assert {:ok, ^expected_path} = Cache.get(path)
     verify_download(expected_path, expected_contents)
   end
 

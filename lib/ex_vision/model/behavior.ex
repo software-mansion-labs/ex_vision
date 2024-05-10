@@ -53,16 +53,25 @@ defmodule ExVision.Model.Behavior do
 
   @spec __using__([using_option_t()]) :: Macro.t()
   defmacro __using__(opts) do
+    Application.ensure_all_started(:req)
     module = __CALLER__.module
 
     opts = Keyword.validate!(opts, [:base_dir, name: module_to_name(module)])
     base_dir = opts[:base_dir]
 
-    model = base_dir |> Path.join("model.onnx") |> Path.expand()
-    unless File.exists?(model), do: throw("Model doesn't exist")
+    model_path = Path.join(base_dir, "model.onnx")
 
-    categories_file = base_dir |> Path.join("categories.json") |> Path.expand()
-    categories = if File.exists?(categories_file), do: categories_file |> Utils.load_categories()
+    categories =
+      base_dir
+      |> Path.join("categories.json")
+      |> ExVision.Cache.get()
+      |> case do
+        {:ok, categories_file} ->
+          Utils.load_categories(categories_file)
+
+        {:error, reason} ->
+          raise "Failed to load the categories file due to #{inspect(reason)}"
+      end
 
     categories_spec =
       unless is_nil(categories),
@@ -73,7 +82,7 @@ defmodule ExVision.Model.Behavior do
       @behaviour ExVision.Model.Behavior
 
       @model_name unquote(opts[:name])
-      @model_path unquote(model)
+      @model_path unquote(model_path)
 
       defstruct [:model]
 
@@ -84,11 +93,14 @@ defmodule ExVision.Model.Behavior do
       def load(options \\ []) do
         with {:ok, options} <- Keyword.validate(options, [:cache_dir, providers: [:cpu]]),
              cache_options = Keyword.take(options, [:cache_dir]),
-             {:ok, %{model: path}} <- ExVision.Cache.get(@model_path, options) do
+             {:ok, path} <- ExVision.Cache.get(@model_path, cache_options) do
           try do
             {:ok, %__MODULE__{model: Ortex.load(path, options[:providers])}}
           rescue
-            RuntimeError -> {:error, :onnx_load_failure}
+            e in RuntimeError ->
+              require Logger
+              Logger.error("Failed to load #{inspect(__MODULE__)} due to #{inspect(e)}")
+              {:error, :onnx_load_failure}
           end
         end
       end

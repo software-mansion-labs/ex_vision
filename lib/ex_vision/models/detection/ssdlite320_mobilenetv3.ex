@@ -2,7 +2,7 @@ defmodule ExVision.Detection.Ssdlite320_MobileNetv3 do
   @moduledoc """
   SSDLite320 object detector with MobileNetV3 Large architecture, exported from torchvision.
   """
-  use ExVision.Model.Behavior, base_dir: "models/detection/ssdlite320_mobilenetv3"
+  use ExVision.Model.Behavior, base_dir: "detection/ssdlite320_mobilenetv3"
 
   alias __MODULE__.BBox
 

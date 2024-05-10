@@ -4,7 +4,7 @@ defmodule ExVision.Classification.MobileNetV3Small do
   Exported from `torchvision`.
   Weights from Imagenet 1k.
   """
-  use ExVision.Model.Behavior, base_dir: "models/classification/mobilenetv3small"
+  use ExVision.Model.Behavior, base_dir: "classification/mobilenetv3small"
 
   require Bunch.Typespec
   alias ExVision.Utils
