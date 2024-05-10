@@ -12,6 +12,7 @@ defmodule ExVision.Model.Case do
 
     quote do
       use ExUnit.Case, async: true
+      use ExVision.TestUtils.MockCacheServer
       @behaviour ExVision.Model.Case.Behaviour
       alias unquote(opts[:module]), as: Model
 
