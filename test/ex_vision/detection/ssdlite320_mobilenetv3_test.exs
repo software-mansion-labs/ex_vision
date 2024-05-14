@@ -1,7 +1,7 @@
 defmodule ExVision.Detection.Ssdlite320_MobileNetv3Test do
   use ExVision.Model.Case, module: ExVision.Detection.Ssdlite320_MobileNetv3
 
-  alias Model.BBox
+  alias ExVision.Types.BBox
 
   @impl true
   def test_inference_result(result) do

@@ -40,17 +40,17 @@ defmodule ExVision.CacheTest do
   test "Can download the file", ctx do
     [{path, expected_contents}] = Enum.to_list(ctx.files)
     expected_path = Path.join(ctx.tmp_dir, path)
-    assert {:ok, ^expected_path} = Cache.get(path)
+    assert {:ok, ^expected_path} = Cache.lazy_get(path)
     verify_download(expected_path, expected_contents)
   end
 
   test "will fail if server is unreachable" do
     app_env_override(:server_url, URI.new!("http://localhost:9999"))
-    assert {:error, :connection_failed} = Cache.get("/test")
+    assert {:error, :connection_failed} = Cache.lazy_get("/test")
   end
 
   test "will fail if we request file that doesn't exist" do
-    assert {:error, :doesnt_exist} = Cache.get("/idk")
+    assert {:error, :doesnt_exist} = Cache.lazy_get("/idk")
   end
 
   defp app_env_override(key, new_value) do

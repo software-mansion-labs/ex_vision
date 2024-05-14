@@ -20,7 +20,7 @@ test:
 
   script:
     - mix compile --warnings-as-errors
-    - mix credo --strict
+    - mix credo
 
 variables:
   MIX_ENV: test

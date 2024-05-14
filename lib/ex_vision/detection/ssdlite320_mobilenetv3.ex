@@ -2,9 +2,11 @@ defmodule ExVision.Detection.Ssdlite320_MobileNetv3 do
   @moduledoc """
   SSDLite320 object detector with MobileNetV3 Large architecture, exported from torchvision.
   """
-  use ExVision.Model.Behavior, base_dir: "detection/ssdlite320_mobilenetv3"
+  use ExVision.Model.Definition.Ortex, base_dir: "detection/ssdlite320_mobilenetv3"
 
-  alias __MODULE__.BBox
+  require Logger
+
+  alias ExVision.Types.BBox
 
   @typedoc """
   A type describing output of `run/2` as a list of a bounding boxes.
@@ -14,6 +16,19 @@ defmodule ExVision.Detection.Ssdlite320_MobileNetv3 do
   Bounding boxes with very low scores should most likely be ignored.
   """
   @type output_t() :: [BBox.t(category_t())]
+
+  @impl true
+  def load(options \\ []) do
+    if Keyword.has_key?(options, :max_batch_size) do
+      Logger.warning(
+        "`:max_batch_size` was given, but this model can only process batch of size 1. Overriding"
+      )
+    end
+
+    options
+    |> Keyword.put(:max_batch_size, 1)
+    |> default_model_load()
+  end
 
   @impl true
   def preprocessing(img, _metadata) do
