@@ -19,7 +19,10 @@ Mix.install(
     :kino,
     :kino_membrane
   ],
-  config: [nx: [default_backend: EXLA.Backend]]
+  config: [
+    nx: [default_backend: EXLA.Backend],
+    ex_vision: [cache_dir: Path.join(__DIR__, "../models")]
+  ]
 )
 ```
 
@@ -55,7 +58,7 @@ defmodule Membrane.ExVision.Detector do
   use Membrane.Filter
 
   alias ExVision.Detection.Ssdlite320_MobileNetv3, as: Model
-  alias ExVision.Detection.Ssdlite320_MobileNetv3.BBox
+  alias ExVision.Types.BBox
 
   # Define both input and output pads
   # On both, we want to have raw image in RGB
@@ -159,8 +162,8 @@ defmodule Pipeline do
       |> child(:demuxer, %Membrane.MP4.Demuxer.ISOM{optimize_for_non_fast_start?: true})
       |> via_out(Pad.ref(:output, 1))
       |> child(%Membrane.H264.Parser{
-        output_stream_structure: :annexb
-        # generate_best_effort_timestamps: %{framerate: {25, 1}}
+        output_stream_structure: :annexb,
+        generate_best_effort_timestamps: %{framerate: {25, 1}}
       })
       |> child(Membrane.H264.FFmpeg.Decoder)
       |> child(%Membrane.FFmpeg.SWScale.PixelFormatConverter{format: :RGB})

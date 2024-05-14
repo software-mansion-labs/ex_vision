@@ -21,7 +21,7 @@ defprotocol ExVision.Model do
   @doc """
   A function used to submit input for inference (inline variant).
   """
-  @spec run(t(), input_t()) :: output_t()
+  @spec run(t(), input_t()) :: output_t() | [output_t()]
   def run(model, input)
 
   @doc """
@@ -38,17 +38,29 @@ defprotocol ExVision.Model do
 end
 
 defimpl ExVision.Model, for: Any do
-  def run(%{serving: serving}, input) do
+  def run(%{serving: serving}, input) when is_list(input) do
     Nx.Serving.run(serving, input)
+  end
+
+  def run(model, input) do
+    model
+    |> run([input])
+    |> hd()
   end
 
   def child_spec(%module{serving: serving}) do
     Nx.Serving.child_spec(serving: serving, name: process_name(module))
   end
 
-  def batched_run(%module{}, input) do
+  def batched_run(%module{}, input) when is_list(input) do
     Nx.Serving.batched_run(process_name(module), input)
   end
 
-  defp process_name(module), do: {:serving, module}
+  def batched_run(module, input) do
+    module
+    |> batched_run([input])
+    |> hd()
+  end
+
+  defp process_name(module), do: {ExVision.Model.Serving, module}
 end

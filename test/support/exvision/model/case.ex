@@ -11,14 +11,10 @@ defmodule ExVision.Model.Case do
       use ExUnit.Case, async: true
       use ExVision.TestUtils.MockCacheServer
       @behaviour ExVision.Model.Case
-      alias unquote(opts[:module]), as: Model
 
       setup_all do
-        {:ok, model} = Model.load(cache_path: "models")
-
-        [
-          model: model
-        ]
+        {:ok, model} = unquote(opts[:module]).load(cache_path: "models")
+        [model: model]
       end
 
       test "load/0", %{model: model} do
@@ -27,13 +23,13 @@ defmodule ExVision.Model.Case do
 
       test "inference", %{model: model} do
         model
-        |> Model.run(unquote(@img_path))
-        |> Enum.each(&test_inference_result/1)
+        |> unquote(opts[:module]).run(unquote(@img_path))
+        |> test_inference_result()
       end
 
       test "inference for batch", %{model: model} do
         model
-        |> Model.run([unquote(@img_path), unquote(@img_path)])
+        |> unquote(opts[:module]).run([unquote(@img_path), unquote(@img_path)])
         |> Enum.each(&test_inference_result/1)
       end
     end

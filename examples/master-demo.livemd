@@ -14,7 +14,10 @@ Mix.install(
     :exla,
     :image
   ],
-  config: [nx: [default_backend: EXLA.Backend]]
+  config: [
+    nx: [default_backend: EXLA.Backend],
+    ex_vision: [cache_dir: Path.join(__DIR__, ~c"../models")]
+  ]
 )
 ```
 
@@ -75,7 +78,7 @@ However, let's start with loading our test suspect. In the next cell, you can pr
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-input = Kino.Input.image(~c"Image to evaluate", format: :jpeg)
+input = Kino.Input.image("Image to evaluate", format: :jpeg)
 ```
 
 <!-- livebook:{"reevaluate_automatically":true} -->
@@ -155,7 +158,7 @@ In this example, we will draw a rectangle around the biggest object in the image
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-alias ExVision.Detection.Ssdlite320_MobileNetv3.BBox
+alias ExVision.Types.BBox
 
 # apply the model
 prediction =
