@@ -159,11 +159,7 @@ defmodule ExVision.Model.Definition.Ortex do
       @impl true
       def preprocessing(image, _metadata), do: image
 
-      # @impl true
-      # def after_serving_created(serving), do: serving
-
-      # , after_serving_created: 1)
-      defoverridable(load: 0, load: 1, preprocessing: 2, postprocessing: 2)
+      defoverridable load: 0, load: 1, preprocessing: 2, postprocessing: 2
     end
   end
 end
