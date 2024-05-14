@@ -13,15 +13,16 @@ defmodule ExVision.Utils do
           {:pixel_type, pixel_type_t()}
           | {:channel_spec, channel_spec_t()}
 
-  @spec load_image(ExVision.Model.input_t(), [load_image_option_t()]) :: Nx.Tensor.t()
+  @spec load_image(ExVision.Model.input_t(), [load_image_option_t()]) :: [Nx.Tensor.t()]
   def load_image(image, options \\ []) do
     options = Keyword.validate!(options, pixel_type: {:f, 32}, channel_spec: :first)
 
     image
     |> read_image()
-    |> convert_pixel_type(options[:pixel_type])
-    |> convert_channel_spec(options[:channel_spec])
-    |> Nx.new_axis(0)
+    |> List.flatten()
+    |> Stream.map(&convert_pixel_type(&1, options[:pixel_type]))
+    |> Stream.map(&convert_channel_spec(&1, options[:channel_spec]))
+    |> Enum.to_list()
   end
 
   @spec convert_channel_spec(Nx.Tensor.t(), channel_spec_t()) :: Nx.Tensor.t()
@@ -38,10 +39,10 @@ defmodule ExVision.Utils do
   @spec guess_channel_spec(Nx.Tensor.t()) :: channel_spec_t()
   defp guess_channel_spec(tensor) do
     case Nx.shape(tensor) do
-      {_batch, 3, _w, _h} -> :first
       {3, _w, _h} -> :first
-      {_batch, _w, _h, 3} -> :last
+      {_batch, 3, _w, _h} -> :first
       {_w, _h, 3} -> :last
+      {_batch, _w, _h, 3} -> :last
       shape -> raise "Failed to infer channel spec for shape #{inspect(shape)}"
     end
   end
@@ -64,20 +65,37 @@ defmodule ExVision.Utils do
 
   def convert_pixel_type(tensor, nil), do: tensor
 
-  @spec read_image(ExVision.Model.input_t()) :: Nx.Tensor.t()
+  @spec read_image(ExVision.Model.input_t()) :: [Nx.Tensor.t()]
+  defp read_image(%Nx.Batch{} = batch), do: read_image(batch.stack)
+
+  defp read_image(list) when is_list(list) do
+    list |> Enum.map(&read_image/1)
+  end
+
   defp read_image(%Vix.Vips.Image{} = image) do
     image |> Image.to_nx!() |> read_image()
   end
 
   defp read_image(x) when Nx.is_tensor(x) do
-    x
+    ensure_grad_3(x)
   end
 
   defp read_image(x) when is_binary(x) do
     x |> Image.open!() |> read_image()
   end
 
-  @type resize_spec_t() :: number() | {number() | number()}
+  defp ensure_grad_3(tensor) do
+    tensor
+    |> Nx.shape()
+    |> tuple_size()
+    |> case do
+      3 -> [tensor]
+      4 -> tensor |> Nx.to_batched(1) |> Stream.map(&Nx.squeeze(&1, axes: [0])) |> Enum.to_list()
+      other -> raise "Received unexpected tensor of grad #{other}"
+    end
+  end
+
+  @type resize_spec_t() :: number() | Types.image_size_t()
   @spec resize(Nx.Tensor.t(), resize_spec_t()) :: Nx.Tensor.t()
   def resize(tensor, size) when is_number(size) do
     NxImage.resize_short(tensor, size, channels: guess_channel_spec(tensor))

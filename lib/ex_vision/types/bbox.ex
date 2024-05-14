@@ -1,4 +1,4 @@
-defmodule ExVision.Detection.Ssdlite320_MobileNetv3.BBox do
+defmodule ExVision.Types.BBox do
   @moduledoc """
   A struct describing the bounding box returned by the detection model.
   """
@@ -30,9 +30,15 @@ defmodule ExVision.Detection.Ssdlite320_MobileNetv3.BBox do
 
   @typep t() :: t(term())
 
+  @doc """
+  Return the width of the bounding box
+  """
   @spec width(t()) :: number()
   def width(%__MODULE__{x1: x1, x2: x2}), do: abs(x2 - x1)
 
+  @doc """
+  Return the height of the bounding box
+  """
   @spec height(t()) :: number()
   def height(%__MODULE__{y1: y1, y2: y2}), do: abs(y2 - y1)
 end

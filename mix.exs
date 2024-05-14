@@ -83,11 +83,10 @@ defmodule ExVision.Mixfile do
       source_ref: "v#{@version}",
       nest_modules_by_prefix: [
         ExVision,
+        ExVision.Types,
         ExVision.Classification,
         ExVision.Detection,
-        ExVision.Segmentation,
-        ExVision.Types,
-        ExVision.Download
+        ExVision.Segmentation
       ]
     ]
   end

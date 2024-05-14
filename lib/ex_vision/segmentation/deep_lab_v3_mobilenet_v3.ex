@@ -2,8 +2,7 @@ defmodule ExVision.Segmentation.DeepLabV3_MobileNetV3 do
   @moduledoc """
   A semantic segmentation model for MobileNetV3 Backbone. Exported from torchvision.
   """
-  use ExVision.Model.Behavior, base_dir: "segmentation/deeplabv3_mobilenetv3"
-  require Bunch.Typespec
+  use ExVision.Model.Definition.Ortex, base_dir: "segmentation/deeplabv3_mobilenetv3"
 
   @type output_t() :: %{category_t() => Nx.Tensor.t()}
 
@@ -13,7 +12,7 @@ defmodule ExVision.Segmentation.DeepLabV3_MobileNetV3 do
   end
 
   @impl true
-  @spec postprocessing(tuple(), ExVision.Model.Behavior.Metadata.t()) :: output_t()
+  @spec postprocessing(tuple(), ExVision.Model.Definition.Metadata.t()) :: output_t()
   def postprocessing({out, _aux}, metadata) do
     cls_per_pixel =
       out

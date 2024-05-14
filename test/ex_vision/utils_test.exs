@@ -5,37 +5,112 @@ defmodule ExVision.UtilsTest do
   @img_path Path.join(__DIR__, "../assets/cat.jpg")
   @categories_path Path.join(__DIR__, "../assets/categories.json")
 
-  describe "load_image/2 loads from" do
+  describe "load_image/1 loads from" do
     test "path" do
-      assert img = Utils.load_image(@img_path)
-      assert Nx.shape(img) == {1, 3, 360, 543}
+      assert [img] = Utils.load_image(@img_path)
+      assert Nx.shape(img) == {3, 360, 543}
       assert Nx.type(img) == {:f, 32}
     end
 
     test ":image library image" do
       img = Image.open!(@img_path)
-      assert img_from_image = Utils.load_image(img)
-      assert img_from_path = Utils.load_image(@img_path)
+      assert [img_from_image] = Utils.load_image(img)
+      assert [img_from_path] = Utils.load_image(@img_path)
       assert Nx.equal(img_from_image, img_from_path)
     end
 
     test "Nx.Tensor" do
       tensor = @img_path |> Image.open!() |> Image.to_nx!(shape: :hwc)
-      assert img_from_tensor = Utils.load_image(tensor)
-      assert img_from_path = Utils.load_image(@img_path)
+      assert [img_from_tensor] = Utils.load_image(tensor)
+      assert [img_from_path] = Utils.load_image(@img_path)
       assert Nx.equal(img_from_tensor, img_from_path)
+    end
+
+    test "batched Nx.Tensor" do
+      tensor =
+        @img_path
+        |> Image.open!()
+        |> Image.to_nx!(shape: :hwc)
+        |> Stream.duplicate(2)
+        |> Enum.to_list()
+        |> Nx.stack()
+
+      tensor
+      |> Utils.load_image()
+      |> Enum.each(&assert Nx.shape(&1) == {3, 360, 543})
+    end
+
+    test "list of differently sized tensors" do
+      input = [
+        Nx.iota({3, 10, 20}, type: :f32),
+        Nx.iota({3, 20, 10}, type: :f32)
+      ]
+
+      input
+      |> Utils.load_image()
+      |> Enum.zip(input)
+      |> Enum.each(fn {a, b} -> assert Nx.equal(a, b) end)
+    end
+
+    test "list of tensors" do
+      tensor =
+        @img_path
+        |> Image.open!()
+        |> Image.to_nx!(shape: :hwc)
+        |> Stream.duplicate(2)
+        |> Enum.to_list()
+
+      tensor
+      |> Utils.load_image()
+      |> Enum.each(&assert Nx.shape(&1) == {3, 360, 543})
+    end
+
+    test "list of paths" do
+      assert [a, b] = img = Utils.load_image([@img_path, @img_path])
+
+      Enum.each(img, fn img ->
+        assert Nx.shape(img) == {3, 360, 543}
+        assert Nx.type(img) == {:f, 32}
+      end)
+
+      assert Nx.equal(a, b)
+    end
+
+    test "Nx.Batch" do
+      tensor =
+        @img_path
+        |> Image.open!()
+        |> Image.to_nx!(shape: :hwc)
+
+      serving = Nx.Serving.new(fn opts -> Nx.Defn.jit(fn a -> a end, opts) end)
+      batch = Nx.Batch.stack([tensor, tensor])
+      batch = Nx.Serving.run(serving, batch)
+      output = Utils.load_image(batch)
+
+      Enum.each(output, fn img ->
+        assert Nx.shape(img) == {3, 360, 543}
+      end)
     end
   end
 
   describe "load_image/2 handles option to" do
-    test "channel spec change" do
-      assert img = Utils.load_image(@img_path, channel_spec: :last)
-      assert Nx.shape(img) == {1, 360, 543, 3}
+    test "channel spec change from to :last" do
+      tensor_first = Nx.iota({3, 128, 256}, type: :f32)
+      assert [tensor_last] = Utils.load_image(tensor_first, channel_spec: :last)
+      assert Nx.shape(tensor_last) == {128, 256, 3}
+
+      assert [tensor_new_last] = Utils.load_image(tensor_last, channel_spec: :last)
+      assert Nx.equal(tensor_last, tensor_new_last)
+    end
+
+    test "channel spec change to :first" do
+      assert [img] = Utils.load_image(@img_path, channel_spec: :last)
+      assert Nx.shape(img) == {360, 543, 3}
     end
 
     test "pixel format change" do
       for t <- [{:u, 8}, {:f, 16}] do
-        assert img = Utils.load_image(@img_path, pixel_type: t)
+        assert [img] = Utils.load_image(@img_path, pixel_type: t)
         assert Nx.type(img) == t, "assertion failed for #{inspect(t)}"
       end
     end
