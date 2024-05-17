@@ -13,13 +13,14 @@ Mix.install(
     :membrane_h26x_plugin,
     :membrane_h264_ffmpeg_plugin,
     :membrane_ffmpeg_swscale_plugin,
-    :membrane_mp4_plugin,
+    {:membrane_mp4_plugin, "~> 0.34.2"},
     :kino,
     :kino_membrane
   ],
   config: [
     nx: [default_backend: EXLA.Backend]
-  ]
+  ],
+  force: true
 )
 ```
 
@@ -86,19 +87,33 @@ defmodule Membrane.ExVision.Detector do
   end
 
   @impl true
-  def handle_setup(_ctx, state) do
-    {:ok, detector} = Model.load()
-    {[], %State{state | detector: detector}}
+  def handle_setup(ctx, state) do
+    name =
+      10
+      |> :crypto.strong_rand_bytes()
+      |> then(&"#{&1}")
+      |> :base64.encode()
+      |> String.to_atom()
+      |> dbg()
+
+    {:ok, pid} = Model.start_link(name: name)
+
+    Membrane.ResourceGuard.register(ctx.resource_guard, fn ->
+      GenServer.stop(pid)
+    end)
+
+    {[], %State{state | detector: name}}
   end
 
   @impl true
   def handle_buffer(:input, buffer, ctx, %State{detector: detector} = state) do
-    {:ok, image} = buffer_to_image(buffer, ctx.pads.input.stream_format)
+    tensor = buffer_to_tensor(buffer, ctx.pads.input.stream_format)
+    {:ok, image} = Image.from_nx(tensor)
 
     # Run inference and filter out unlikely bounding boxes
     predictions =
       detector
-      |> Model.run(image)
+      |> Model.batched_run(tensor)
       # filter out butterfly bounding boxes
       |> Enum.filter(fn %BBox{score: score} -> score > 0.3 end)
 
@@ -120,14 +135,13 @@ defmodule Membrane.ExVision.Detector do
     {[buffer: {:output, fill_buffer_with_image(image, buffer)}], state}
   end
 
-  defp buffer_to_image(%Membrane.Buffer{payload: payload}, %Membrane.RawVideo{
+  defp buffer_to_tensor(%Membrane.Buffer{payload: payload}, %Membrane.RawVideo{
          width: w,
          height: h
        }) do
     payload
     |> Nx.from_binary(:u8)
-    |> Nx.reshape({w, h, 3}, names: [:width, :height, :colors])
-    |> Image.from_nx()
+    |> Nx.reshape({h, w, 3}, names: [:height, :width, :colors])
   end
 
   defp fill_buffer_with_image(image, buffer) do
@@ -159,8 +173,7 @@ defmodule Pipeline do
       |> child(:demuxer, %Membrane.MP4.Demuxer.ISOM{optimize_for_non_fast_start?: true})
       |> via_out(Pad.ref(:output, 1))
       |> child(%Membrane.H264.Parser{
-        output_stream_structure: :annexb,
-        generate_best_effort_timestamps: %{framerate: {25, 1}}
+        output_stream_structure: :annexb
       })
       |> child(Membrane.H264.FFmpeg.Decoder)
       |> child(%Membrane.FFmpeg.SWScale.PixelFormatConverter{format: :RGB})
@@ -169,6 +182,7 @@ defmodule Pipeline do
       |> child(%Membrane.H264.FFmpeg.Encoder{profile: :baseline})
       |> child(%Membrane.H264.Parser{
         output_stream_structure: :avc1
+        # generate_best_effort_timestamps: %{framerate: {25, 1}}
       })
       |> child(Membrane.MP4.Muxer.ISOM)
       |> child(:sink, %Membrane.File.Sink{

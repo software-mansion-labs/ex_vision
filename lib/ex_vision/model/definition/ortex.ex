@@ -149,19 +149,6 @@ defmodule ExVision.Model.Definition.Ortex do
         default_model_load(options)
       end
 
-      @doc """
-      Creates the child spec for the `Supervisor`.
-      Accepts all of the same options as `load!/1` and `Nx.Serving.new/2`.
-      """
-      @impl true
-      @spec child_spec(keyword()) :: Supervisor.child_spec()
-      def child_spec(options \\ []) do
-        {load_options, spec_options} =
-          Keyword.split(options, [:cache_path, :providers, :batch_size])
-
-        ExVision.Model.child_spec(load!(load_options), spec_options)
-      end
-
       defp default_model_load(options) do
         ExVision.Model.Definition.Ortex.load_ortex_model(__MODULE__, @model_path, options)
       end

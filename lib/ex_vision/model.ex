@@ -19,16 +19,16 @@ defprotocol ExVision.Model do
   @type output_t() :: any()
 
   @doc """
+  Starts and links the module in process workflow
+  """
+  @spec start_link(t(), keyword()) :: GenServer.on_start()
+  def start_link(model, options \\ [])
+
+  @doc """
   A function used to submit input for inference (inline variant).
   """
   @spec run(t(), input_t()) :: output_t() | [output_t()]
   def run(model, input)
-
-  @doc """
-  Function used to obtain a child spec for a generic ExVision model.
-  """
-  @spec child_spec(t(), keyword()) :: Supervisor.child_spec()
-  def child_spec(model, options \\ [])
 
   @doc """
   Function used to submit the input for inference in a process setting when the model is served as a process.
@@ -53,20 +53,11 @@ defimpl ExVision.Model, for: Any do
     |> hd()
   end
 
-  def child_spec(model, options \\ []) do
-    options =
-      Keyword.validate!(options, [
-        :partitions,
-        :batch_timeout,
-        :distribution_weight,
-        :shutdown,
-        :hibernate_after,
-        :spawn_opt,
-        :batch_keys,
-        name: process_name(model)
-      ])
-
-    options |> Keyword.put(:serving, as_serving(model)) |> Nx.Serving.child_spec()
+  def start_link(model, options \\ []) do
+    options
+    |> validate_start_link_options!(name: process_name(model))
+    |> Keyword.put(:serving, as_serving(model))
+    |> Nx.Serving.start_link()
   end
 
   def batched_run(model, input) do
@@ -83,13 +74,31 @@ defimpl ExVision.Model, for: Any do
   def as_serving(%{serving: serving}), do: serving
 
   defp process_name(%module{}), do: module
+
+  defp validate_start_link_options!(options, extras) do
+    spec =
+      [
+        :partitions,
+        :batch_timeout,
+        :distribution_weight,
+        :shutdown,
+        :hibernate_after,
+        :spawn_opt,
+        :name
+      ] -- Keyword.keys(extras)
+
+    Keyword.validate!(
+      options,
+      spec ++ extras
+    )
+  end
 end
 
 defimpl ExVision.Model, for: Atom do
   use ExVision.Utils.Macros
   defunimplemented(run(_model, _input), with_impl: true)
+  defunimplemented(start_link(_model, _opts), with_impl: true)
   defunimplemented(as_serving(_model), with_impl: true)
-  defunimplemented(child_spec(_model, _options), with_impl: true)
 
   @impl true
   def batched_run(module, input) do

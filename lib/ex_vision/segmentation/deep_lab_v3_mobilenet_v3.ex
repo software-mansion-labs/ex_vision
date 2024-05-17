@@ -12,7 +12,6 @@ defmodule ExVision.Segmentation.DeepLabV3_MobileNetV3 do
   end
 
   @impl true
-  @spec postprocessing(tuple(), ExVision.Model.Definition.Metadata.t()) :: output_t()
   def postprocessing({out, _aux}, metadata) do
     cls_per_pixel =
       out
