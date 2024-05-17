@@ -19,14 +19,14 @@ defmodule ExVision.Detection.Ssdlite320_MobileNetv3 do
 
   @impl true
   def load(options \\ []) do
-    if Keyword.has_key?(options, :max_batch_size) do
+    if Keyword.has_key?(options, :batch_size) do
       Logger.warning(
         "`:max_batch_size` was given, but this model can only process batch of size 1. Overriding"
       )
     end
 
     options
-    |> Keyword.put(:max_batch_size, 1)
+    |> Keyword.put(:batch_size, 1)
     |> default_model_load()
   end
 

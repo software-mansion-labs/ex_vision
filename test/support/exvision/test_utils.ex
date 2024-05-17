@@ -3,7 +3,7 @@ defmodule ExVision.TestUtils do
 
   import ExUnit.Assertions, only: :macros
 
-  @default_delta 0.1
+  @default_delta 0.05
 
   @doc """
   Compares to floats by ensuring that the distance between them is smaller than specified delta

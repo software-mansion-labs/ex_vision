@@ -27,19 +27,24 @@ defprotocol ExVision.Model do
   @doc """
   Function used to obtain a child spec for a generic ExVision model.
   """
-  @spec child_spec(t()) :: tuple()
-  def child_spec(model)
+  @spec child_spec(t(), keyword()) :: Supervisor.child_spec()
+  def child_spec(model, options \\ [])
 
   @doc """
   Function used to submit the input for inference in a process setting when the model is served as a process.
   """
   @spec batched_run(t(), input_t()) :: output_t()
   def batched_run(model, input)
+
+  @spec as_serving(t()) :: Nx.Serving.t()
+  def as_serving(model)
 end
 
 defimpl ExVision.Model, for: Any do
-  def run(%{serving: serving}, input) when is_list(input) do
-    Nx.Serving.run(serving, input)
+  require Logger
+
+  def run(model, input) when is_list(input) do
+    model |> as_serving() |> Nx.Serving.run(input)
   end
 
   def run(model, input) do
@@ -48,19 +53,46 @@ defimpl ExVision.Model, for: Any do
     |> hd()
   end
 
-  def child_spec(%module{serving: serving}) do
-    Nx.Serving.child_spec(serving: serving, name: process_name(module))
+  def child_spec(model, options \\ []) do
+    options =
+      Keyword.validate!(options, [
+        :partitions,
+        :batch_timeout,
+        :distribution_weight,
+        :shutdown,
+        :hibernate_after,
+        :spawn_opt,
+        :batch_keys,
+        name: process_name(model)
+      ])
+
+    options |> Keyword.put(:serving, as_serving(model)) |> Nx.Serving.child_spec()
   end
 
-  def batched_run(%module{}, input) when is_list(input) do
-    Nx.Serving.batched_run(process_name(module), input)
+  def batched_run(model, input) do
+    Logger.warning("""
+    Calling batched_run/2 at the ExVision.Model struct can lead to undefined behaviour.
+    Referencing the already running process by name is preffered.
+    """)
+
+    model
+    |> process_name()
+    |> ExVision.Utils.batched_run(input)
   end
 
+  def as_serving(%{serving: serving}), do: serving
+
+  defp process_name(%module{}), do: module
+end
+
+defimpl ExVision.Model, for: Atom do
+  use ExVision.Utils.Macros
+  defunimplemented(run(_model, _input), with_impl: true)
+  defunimplemented(as_serving(_model), with_impl: true)
+  defunimplemented(child_spec(_model, _options), with_impl: true)
+
+  @impl true
   def batched_run(module, input) do
-    module
-    |> batched_run([input])
-    |> hd()
+    ExVision.Utils.batched_run(module, input)
   end
-
-  defp process_name(module), do: {ExVision.Model.Serving, module}
 end

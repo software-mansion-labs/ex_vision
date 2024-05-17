@@ -1,0 +1,110 @@
+<!-- livebook:{"app_settings":{"access_type":"public","output_type":"rich","show_source":true,"slug":"nx-serving-example"}} -->
+
+# Usage in production - process workflow
+
+```elixir
+Mix.install(
+  [
+    {:ex_vision, path: Path.join(__DIR__, "..")},
+    :exla,
+    :kino,
+    :nx,
+    :kino_bumblebee
+  ],
+  config: [nx: [default_backend: EXLA.Backend]]
+)
+```
+
+## A word of introduction - what problem are we solving?
+
+Deploying an AI model in a production environement can quite difficult to get right. In order to ensure efficient resource usage and high throughput, one needs to consider the following:
+
+* creating a cluster of GPU enabled machines, effectively creating an AI-microservice. That comes with all of the associated challenges of service discovery and API implementation
+* Even if the cluster is not necessary, most of the time running one model instance per user is not a viable option, as loading the model takes a long time and that approach wastes a lot of potential of your hardware
+* intelligently batching requests from different sources, to get the most out of your GPU's concurrency potential, while also preventing the delay from mounting up while waiting for other requests to complete the batch
+* Critical error handling
+
+### The solution
+
+Fortunately, Elixir ecosystem features an amazing, prebuilt solution to most of these problems in form of [`Nx.Serving`](https://hexdocs.pm/nx/Nx.Serving.html). ExVision's models are all implemented using `Nx.Serving` underneath. In fact, our `ExVision.Model.run/2` and `ExVision.Model.batched_run/2` all make use of the matching `Nx.Serving.run/2` and `Nx.Serving.batched_run/2` respectively.
+
+This approach allows us to make use of the built in intelligent batching and ability to be run as a standalone process provided by `Nx.Serving` out of the box.
+
+In fact, we even expose `ExVision.Model.as_serving/1` that will extract the ExVision internal struct and expose the underlyeing `Nx.Serving`.
+
+## Basic usage example
+
+In this section, we will showcase running the ExVision's models in the process workflow, but we will not attempt to explain every single detail of the `Nx.Serving`, as this part of the ExVision's API is just a thin convinience wrapper on top of it.
+
+If you want to dig deeper, we would encourage consulting the [`Nx.Serving` statefull/process workflow documentation](https://hexdocs.pm/nx/Nx.Serving.html#module-stateful-process-workflow).
+
+### What we're building
+
+In this example we will build a simple interactive app performing the classification of the uploaded image
+
+### Starting the model using the process workflow
+
+In order to start the model process, just add it to your supervision tree. It is recommended that this process is started somewhere at the top of the tree. For all available options, please refer to the Nx documentation on [`Nx.Serving.start_link/1`](https://hexdocs.pm/nx/Nx.Serving.html#start_link/1).
+
+If not explicitely provided, ExVision models will by default take their module name as the process name.
+
+```elixir
+alias ExVision.Classification.MobileNetV3Small, as: Model
+
+children = [
+  {Model, batch_size: 8, batch_timeout: 500}
+]
+
+{:ok, _pid} = Supervisor.start_link(children, strategy: :one_for_one)
+Kino.nothing()
+```
+
+And just like that, our model is now ready is now avaiable for inference for our entire cluster. And we can call on it like that:
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+input = Nx.iota({3, 1920, 1280})
+Model.batched_run(input)
+```
+
+The only difference when compared to an inline workflow, from the perspective of the user is the necessity to use the `batched_run/2` instead of `run/2`.
+
+This time we didn't need to provide the model argument for `batched_run/2`.
+That is because we didn't specify the `:name` option when adding our model to the supervision tree and we relied on the default name assigned by ExVision, which by default is the name of their module.
+If you assigned a custom name to the model, you can give it as a first argument to `batched_run/2`
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+Model.batched_run(MyModel, input)
+```
+
+## Creating an example app
+
+Now that we have a model instanciated and we know how to call on it, let's create an example app performing image classification.
+
+We will make use of the [`Kino`](https://github.com/livebook-dev/kino) library to read the input image and in order to display the classification results.
+
+```elixir
+form = Kino.Control.form([image: Kino.Input.image("Image", format: :jpeg)], submit: "Submit")
+frame = Kino.Frame.new()
+
+Kino.listen(form, fn %{data: %{image: %{file_ref: ref}}, origin: origin} ->
+  input = Kino.Input.file_path(ref)
+  result = Model.batched_run(input)
+
+  result
+  |> Enum.sort_by(fn {_label, score} -> score end, :desc)
+  |> Enum.take(10)
+  |> Kino.Bumblebee.ScoredList.new()
+  |> then(&Kino.Frame.render(frame, &1, to: origin))
+  |> dbg()
+end)
+
+Kino.Layout.grid([form, frame], columns: 2)
+```
+
+## Next steps
+
+After completing this tutorial you can check out our [Using ExVision with Membrane](3-membrane.livemd) tutorial.
