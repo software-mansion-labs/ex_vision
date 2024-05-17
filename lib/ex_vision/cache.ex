@@ -5,9 +5,9 @@ defmodule ExVision.Cache do
 
   require Logger
 
-  @default_cache_dir Application.compile_env(:ex_vision, :cache_dir, "/tmp/ex_vision/cache")
-  defp get_cache_dir() do
-    Application.get_env(:ex_vision, :cache_dir, @default_cache_dir)
+  @default_cache_path Application.compile_env(:ex_vision, :cache_path, "/tmp/ex_vision/cache")
+  defp get_cache_path() do
+    Application.get_env(:ex_vision, :cache_path, @default_cache_path)
   end
 
   @default_server_url Application.compile_env(:ex_vision, :server_url, "http://localhost:8000")
@@ -27,7 +27,7 @@ defmodule ExVision.Cache do
   def lazy_get(path, options \\ []) do
     options =
       Keyword.validate!(options,
-        cache_path: get_cache_dir(),
+        cache_path: get_cache_path(),
         server_url: get_server_url(),
         force: false
       )
@@ -48,23 +48,27 @@ defmodule ExVision.Cache do
 
   @spec download_file(URI.t(), Path.t()) ::
           {:ok, Path.t()} | {:error, reason :: any()}
-  defp download_file(url, cache) do
-    with :ok <- cache |> Path.dirname() |> File.mkdir_p(),
-         :ok <- do_download_file(url, cache) do
-      if File.exists?(cache),
-        do: {:ok, cache},
+  defp download_file(url, cache_path) do
+    with :ok <- cache_path |> Path.dirname() |> File.mkdir_p(),
+         target_file = File.stream!(cache_path),
+         :ok <- do_download_file(url, target_file) do
+      if File.exists?(cache_path),
+        do: {:ok, cache_path},
         else: {:error, :download_failed}
     end
   end
 
-  @spec do_download_file(URI.t(), Path.t()) :: :ok | {:error, reason :: any()}
-  defp do_download_file(%URI{} = url, target_file_path) do
+  @spec do_download_file(URI.t(), File.Stream.t()) :: :ok | {:error, reason :: any()}
+  defp do_download_file(%URI{} = url, %File.Stream{path: target_file_path} = target_file) do
     Logger.debug("Downloading file from `#{url}` and saving to `#{target_file_path}`")
 
-    with :ok <- target_file_path |> Path.dirname() |> File.mkdir_p!(),
-         target_file = File.stream!(target_file_path),
-         {:ok, _resp} <- make_get_request(url, raw: true, into: target_file) do
-      :ok
+    case make_get_request(url, raw: true, into: target_file) do
+      {:ok, _resp} ->
+        :ok
+
+      {:error, _reason} = error ->
+        File.rm(target_file_path)
+        error
     end
   end
 

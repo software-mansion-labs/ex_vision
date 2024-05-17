@@ -34,14 +34,14 @@ defmodule ExVision.Model.Definition.Ortex do
   @typedoc """
   A type describing all options possible to use with the default implementation of the `load/0` function.
 
-  - `:cache_dir` - specifies a caching directory for this model.
+  - `:cache_path` - specifies a caching directory for this model.
   - `:providers` - a list of desired providers, sorted by preference. Onnx will attempt to use the first available provider. If none of the provided is available, onnx will fallback to `:cpu`. Default: `[:cpu]`
-  - `:max_batch_size` - specifies a default batch size for this instance. Default: `:infinity`
+  - `:batch_size` - specifies a default batch size for this instance. Default: `1`
   """
   @type load_option_t() ::
-          {:cache_dir, Path.t()}
+          {:cache_path, Path.t()}
           | {:providers, [provider_t()]}
-          | {:max_batch_size, pos_integer()}
+          | {:batch_size, pos_integer()}
 
   defmacrop get_client_preprocessing(module) do
     quote do
@@ -87,7 +87,7 @@ defmodule ExVision.Model.Definition.Ortex do
     with {:ok, options} <-
            Keyword.validate(options, [
              :cache_path,
-             max_batch_size: :infinity,
+             batch_size: 1,
              providers: [:cpu]
            ]),
          cache_options = Keyword.take(options, [:cache_path, :file_path]),
@@ -95,7 +95,7 @@ defmodule ExVision.Model.Definition.Ortex do
          {:ok, model} <- do_load_model(path, options[:providers]) do
       model
       |> then(&Nx.Serving.new(Ortex.Serving, &1))
-      |> Nx.Serving.batch_size(options[:max_batch_size])
+      |> Nx.Serving.batch_size(options[:batch_size])
       |> Nx.Serving.client_preprocessing(get_client_preprocessing(module))
       |> Nx.Serving.client_postprocessing(get_client_postprocessing(module))
       |> then(&{:ok, struct!(module, serving: &1)})
@@ -147,6 +147,19 @@ defmodule ExVision.Model.Definition.Ortex do
               {:ok, t()} | {:error, reason :: atom()}
       def load(options \\ []) do
         default_model_load(options)
+      end
+
+      @doc """
+      Creates the child spec for the `Supervisor`.
+      Accepts all of the same options as `load!/1` and `Nx.Serving.new/2`.
+      """
+      @impl true
+      @spec child_spec(keyword()) :: Supervisor.child_spec()
+      def child_spec(options \\ []) do
+        {load_options, spec_options} =
+          Keyword.split(options, [:cache_path, :providers, :batch_size])
+
+        ExVision.Model.child_spec(load!(load_options), spec_options)
       end
 
       defp default_model_load(options) do

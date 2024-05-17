@@ -8,7 +8,7 @@ defmodule ExVision.CacheTest do
 
   setup %{tmp_dir: tmp_dir} do
     app_env_override(:server_url, URI.new!("http://mock_server:8000"))
-    app_env_override(:cache_dir, tmp_dir)
+    app_env_override(:cache_path, tmp_dir)
   end
 
   setup ctx do
@@ -27,7 +27,9 @@ defmodule ExVision.CacheTest do
             {:ok, %Req.Response{status: 200, body: body}}
 
           :error ->
-            {:ok, %Req.Response{status: 404}}
+            # Req seems to be saving the file anyway
+            body = Enum.into([""], options[:into])
+            {:ok, %Req.Response{status: 404, body: body}}
         end
 
       _uri, _options ->
@@ -47,9 +49,11 @@ defmodule ExVision.CacheTest do
   test "will fail if server is unreachable" do
     app_env_override(:server_url, URI.new!("http://localhost:9999"))
     assert {:error, :connection_failed} = Cache.lazy_get("/test")
+    assert {:error, :connection_failed} = Cache.lazy_get("/test")
   end
 
   test "will fail if we request file that doesn't exist" do
+    assert {:error, :doesnt_exist} = Cache.lazy_get("/idk")
     assert {:error, :doesnt_exist} = Cache.lazy_get("/idk")
   end
 

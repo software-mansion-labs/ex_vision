@@ -2,7 +2,6 @@
 
 [![Hex.pm](https://img.shields.io/hexpm/v/ex_vision.svg)](https://hex.pm/packages/ex_vision)
 [![API Docs](https://img.shields.io/badge/api-docs-yellow.svg?style=flat)](https://hexdocs.pm/ex_vision)
-<!-- [![CircleCI](https://circleci.com/gh/membraneframework/ex_vision.svg?style=svg)](https://circleci.com/gh/membraneframework/ex_vision) -->
 
 ExVision is the collection of AI models related to vision delivered with ready to use package and easy to understand API.
 ExVision will take care of all necessary input transformations internally and return the result in the sensible format.
@@ -10,19 +9,24 @@ ExVision will take care of all necessary input transformations internally and re
 ExVision models are powered by [Ortex](https://www.github.com/elixir-nx/ortex).
 
 ## Usage
+
 In order to use the model, you need to first load it
+
 ```elixir
 alias ExVision.Classification.MobileNetV3
 
 model = MobileNetV3.load() #=> %MobileNetV3{}
 ```
+
 After that, the model is available for inference.
 ExVision will take care of all necessary input transformations and covert output to a format that makes sense.
+
 ```elixir
 MobileNetV3.run(model, "example/files/cat.jpg") #=> %{cat: 0.98, dog: 0.01, car: 0.00, ...}
 ```
 
 ExVision is also capable of accepting tensors on input:
+
 ```elixir
 cat = "example/files/cat.jpg" |> StbImage.read_file!() |> StbImage.to_nx()
 MobileNetV3.run(model, cat) #=> %{cat: 0.98, dog: 0.01, car: 0.00, ...}
@@ -40,7 +44,7 @@ def deps do
 end
 ```
 
-In order to compile, ExVision **requires Rust and Cargo**
+In order to compile, ExVision **requires Rust and Cargo** to be installed on your system.
 
 ## Current Timeline
 
@@ -52,11 +56,11 @@ If the model that you would like to use is missing, feel free to open the issue,
   - [ ] EfficientNetV2
   - [ ] SqueezeNet
 - [ ] Object detection
-  - [x] SSDLite320 - MobileNetV3 backbone
-- [ ] Semantic segmentation
+  - [x] SSDLite320 - MobileNetV3 Large backbone
+- [x] Semantic segmentation
   - [x] DeepLabV3 - MobileNetV3
 - [ ] Instance segmentation
-  - [ ] Mask R-CNN
+  - [x] Mask R-CNN
 - [ ] Keypoint Detection
   - [ ] Keypoint R-CNN
 

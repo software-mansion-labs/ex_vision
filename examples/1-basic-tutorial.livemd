@@ -1,13 +1,11 @@
 <!-- livebook:{"app_settings":{"access_type":"public","show_source":true,"slug":"ex-vision-master-demo","zero_downtime":true},"file_entries":[{"name":"cat.jpg","type":"attachment"}]} -->
 
-# ExVision master demo
+# ExVision walkthrough
 
 ```elixir
-path = "/Users/danieljod/Documents/ex_vision"
-
 Mix.install(
   [
-    {:ex_vision, path: path},
+    {:ex_vision, path: Path.join(__DIR__, "..")},
     :kino,
     :kino_bumblebee,
     :stb_image,
@@ -15,8 +13,7 @@ Mix.install(
     :image
   ],
   config: [
-    nx: [default_backend: EXLA.Backend],
-    ex_vision: [cache_dir: Path.join(__DIR__, ~c"../models")]
+    nx: [default_backend: EXLA.Backend]
   ]
 )
 ```
@@ -86,7 +83,7 @@ input = Kino.Input.image("Image to evaluate", format: :jpeg)
 ```elixir
 img_path =
   case Kino.Input.read(input) do
-    nil -> Path.join(path, "examples/files/cat.jpg")
+    nil -> Path.join(__DIR__, "files/cat.jpg")
     %{file_ref: image} -> Kino.Input.file_path(image)
   end
 
@@ -222,3 +219,7 @@ predictions
 end)
 |> Kino.Layout.grid(columns: 2)
 ```
+
+## Next steps
+
+After completing this tutorial you can also check out our next tutorial focusing on using models in production in process workflow [here](2-usage-as-nx-serving.livemd)

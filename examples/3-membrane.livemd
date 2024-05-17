@@ -1,13 +1,11 @@
 <!-- livebook:{"file_entries":[{"name":"big-buck-bunny.h264","type":"attachment"}]} -->
 
-# ExVision x Membrane integration demonstration
+# Using ExVision with Membrane
 
 ```elixir
-path = "/Users/danieljod/Documents/ex_vision"
-
 Mix.install(
   [
-    {:ex_vision, path: path},
+    {:ex_vision, path: Path.join(__DIR__, "..")},
     :image,
     :membrane_core,
     :membrane_file_plugin,
@@ -20,8 +18,7 @@ Mix.install(
     :kino_membrane
   ],
   config: [
-    nx: [default_backend: EXLA.Backend],
-    ex_vision: [cache_dir: Path.join(__DIR__, "../models")]
+    nx: [default_backend: EXLA.Backend]
   ]
 )
 ```
@@ -105,7 +102,7 @@ defmodule Membrane.ExVision.Detector do
       # filter out butterfly bounding boxes
       |> Enum.filter(fn %BBox{score: score} -> score > 0.3 end)
 
-    # For each bounding box, represent it as a rectangle on the 
+    # For each bounding box, represent it as a rectangle on the
     image =
       Enum.reduce(predictions, image, fn %BBox{} = prediction, image ->
         image

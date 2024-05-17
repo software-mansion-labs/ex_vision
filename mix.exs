@@ -1,8 +1,10 @@
 defmodule ExVision.Mixfile do
   use Mix.Project
 
+  # TODO: make sure that the links here are correct
+
   @version "0.1.0"
-  @github_url "https://github.com/membraneframework/membrane_template_plugin"
+  @github_url "https://github.com/software-mansion-labs/ex_vision"
 
   def project do
     [
@@ -15,14 +17,14 @@ defmodule ExVision.Mixfile do
       dialyzer: dialyzer(),
 
       # hex
-      description: "A collection of ONNX models with wrappers based on Ortex",
+      description: "A collection of ONNX vision AI models with wrappers based on Ortex",
       package: package(),
 
       # docs
       name: "Ex Vision",
       source_url: @github_url,
       docs: docs(),
-      homepage_url: "https://membrane.stream"
+      homepage_url: "https://hexdocs.pm/ex_vision"
     ]
   end
 
@@ -37,6 +39,7 @@ defmodule ExVision.Mixfile do
 
   defp deps do
     [
+      # TODO: change the `>= 0.0.0` dependencies to concrete versions
       {:nx, ">= 0.0.0"},
       {:ortex, ">= 0.0.0"},
       {:nx_image, "~> 0.1.2"},
@@ -67,27 +70,54 @@ defmodule ExVision.Mixfile do
 
   defp package do
     [
-      maintainers: ["Membrane Team"],
+      maintainers: ["Software Mansion"],
       licenses: ["Apache-2.0"],
       links: %{
-        "GitHub" => @github_url
+        "GitHub" => @github_url,
+        "Software Mansion" => "https://www.swmansion.com"
       }
     ]
   end
 
+  @tutorials Path.wildcard("examples/*.livemd")
   defp docs do
     [
       main: "readme",
-      extras: ["README.md", "LICENSE"],
-      formatters: ["html"],
-      source_ref: "v#{@version}",
+      extras: [
+        "README.md",
+        "LICENSE"
+        | @tutorials
+      ],
+      groups_for_extras: [
+        Tutorials: @tutorials
+      ],
+      groups_for_modules: [
+        Models: [
+          ExVision.Classification.MobileNetV3Small,
+          ExVision.Segmentation.DeepLabV3_MobileNetV3,
+          ExVision.Detection.Ssdlite320_MobileNetv3
+        ],
+        Types: [
+          ExVision.Types,
+          ExVision.Types.BBox,
+          ExVision.Types.ImageMetadata
+        ],
+        "Protocols and Behaviours": [
+          ExVision.Model,
+          ExVision.Model.Definition,
+          ExVision.Model.Definition.Ortex
+        ]
+      ],
       nest_modules_by_prefix: [
-        ExVision,
+        ExVision.Model,
+        ExVision.Model.Definition,
         ExVision.Types,
         ExVision.Classification,
-        ExVision.Detection,
-        ExVision.Segmentation
-      ]
+        ExVision.Segmentation,
+        ExVision.Detection
+      ],
+      formatters: ["html"],
+      source_ref: "v#{@version}"
     ]
   end
 end

@@ -144,4 +144,13 @@ defmodule ExVision.Utils do
   defn softmax(x) do
     Nx.divide(Nx.exp(x), Nx.sum(Nx.exp(x)))
   end
+
+  @spec batched_run(atom(), ExVision.Model.input_t()) :: ExVision.Model.output_t()
+  def batched_run(process_name, input) when is_list(input) do
+    Nx.Serving.batched_run(process_name, input)
+  end
+
+  def batched_run(process_name, input) do
+    process_name |> batched_run([input]) |> hd()
+  end
 end

@@ -8,7 +8,8 @@ defmodule ExVision.Model.Definition do
 
   @callback load(keyword()) :: {:ok, ExVision.Model.t()} | {:error, reason :: atom()}
   @callback run(ExVision.Model.t(), ExVision.Model.input_t()) :: any()
-  @callback batched_run(ExVision.Model.t(), ExVision.Model.input_t()) :: any()
+  @callback batched_run(atom(), ExVision.Model.input_t()) :: any()
+  @callback child_spec(keyword()) :: Supervisor.child_spec()
 
   defp module_to_name(module),
     do:
@@ -59,21 +60,48 @@ defmodule ExVision.Model.Definition do
       """
       @opaque t() :: %__MODULE__{serving: Nx.Serving.t()}
 
-      @impl true
-      defdelegate run(model, input), to: ExVision.Model
+      @doc """
+      Same as `load/1`, but raises and error on failure.
+      """
+      @spec load!(keyword()) :: t()
+      def load!(opts \\ []) do
+        case load(opts) do
+          {:ok, model} ->
+            model
 
-      @impl true
-      defdelegate batched_run(model, input), to: ExVision.Model
+          {:error, reason} ->
+            require Logger
 
-      @spec child_spec(t()) :: tuple()
-      defdelegate child_spec(model), to: ExVision.Model
+            Logger.error(
+              "Failed to load model #{unquote(options[:name])} due to #{inspect(reason)}"
+            )
 
-      @spec child_spec() :: tuple()
-      def child_spec() do
-        child_spec(load())
+            raise "Failed to load model"
+        end
       end
 
-      defoverridable run: 2, batched_run: 2, child_spec: 0, child_spec: 1
+      @impl true
+      @doc """
+      Immediatelly applies the model to the given input, in the scope of the current process.
+      """
+      @spec run(t(), ExVision.Model.input_t()) :: output_t() | [output_t()]
+      defdelegate run(model, input), to: ExVision.Model
+
+      @doc """
+      Submits the input for inference to the process running the Nx.Serving for this model.
+      """
+      @impl true
+      @spec batched_run(atom(), ExVision.Model.input_t()) :: output_t() | [output_t()]
+      def batched_run(name \\ __MODULE__, input), do: ExVision.Model.batched_run(name, input)
+
+      @impl true
+      @spec child_spec(keyword()) :: Supervisor.child_spec()
+      def child_spec(options \\ []) do
+        {load_options, serving_options} = Keyword.split(options, [:batch_size])
+        ExVision.Model.child_spec(load!(load_options), serving_options)
+      end
+
+      defoverridable run: 2, batched_run: 2, child_spec: 1, child_spec: 0
 
       unless is_nil(unquote(categories)) do
         require Bunch.Typespec
