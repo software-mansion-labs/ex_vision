@@ -37,17 +37,13 @@ defmodule ExVision.Model.Case do
         assert spec = unquote(opts[:module]).child_spec(cache_path: "models")
       end
 
-      test "correctly implements ExVision.Model.child_spec/2", %{model: model} do
-        assert %{id: unquote(opts[:module])} = ExVision.Model.child_spec(model)
-      end
-
       describe "stateful/process workflow" do
         setup ctx do
           name = String.to_atom("#{__MODULE__}#{ctx[:test]}")
           model = ctx[:model]
 
           {:ok, _supervisor} =
-            Supervisor.start_link([ExVision.Model.child_spec(model, name: name)],
+            Supervisor.start_link([unquote(opts[:module]).child_spec(name: name)],
               strategy: :one_for_one
             )
 
@@ -70,7 +66,6 @@ defmodule ExVision.Model.Case do
       test "stateful/process workflow accepts options" do
         options = [
           name: __MODULE__.TestProcess1,
-          batch_keys: [:a, :b],
           batch_size: 8,
           batch_timeout: 10,
           partitions: true
@@ -80,6 +75,11 @@ defmodule ExVision.Model.Case do
 
         assert {:ok, _supervisor} =
                  Supervisor.start_link([child_spec], strategy: :one_for_one, restarts: :none)
+
+        assert unquote(opts[:module]).batched_run(
+                 __MODULE__.TestProcess1,
+                 Nx.iota({3, 124, 124}, type: :u8)
+               )
       end
     end
   end

@@ -10,6 +10,7 @@ defmodule ExVision.Model.Definition do
   @callback run(ExVision.Model.t(), ExVision.Model.input_t()) :: any()
   @callback batched_run(atom(), ExVision.Model.input_t()) :: any()
   @callback child_spec(keyword()) :: Supervisor.child_spec()
+  @callback start_link(keyword()) :: GenServer.on_start()
 
   defp module_to_name(module),
     do:
@@ -60,6 +61,23 @@ defmodule ExVision.Model.Definition do
       """
       @opaque t() :: %__MODULE__{serving: Nx.Serving.t()}
 
+      @impl true
+      def start_link(options \\ []) do
+        {start_link_options, load_options} =
+          Keyword.split(options, [
+            :partitions,
+            :batch_timeout,
+            :distribution_weight,
+            :shutdown,
+            :hibernate_after,
+            :spawn_opt,
+            :name
+          ])
+
+        with {:ok, model} <- load(load_options),
+             do: ExVision.Model.start_link(model, start_link_options)
+      end
+
       @doc """
       Same as `load/1`, but raises and error on failure.
       """
@@ -97,11 +115,21 @@ defmodule ExVision.Model.Definition do
       @impl true
       @spec child_spec(keyword()) :: Supervisor.child_spec()
       def child_spec(options \\ []) do
-        {load_options, serving_options} = Keyword.split(options, [:batch_size])
-        ExVision.Model.child_spec(load!(load_options), serving_options)
+        {child_spec_opts, start_link_options} = Keyword.split(options, [:id])
+        child_spec_opts = Keyword.validate!(child_spec_opts, id: __MODULE__)
+
+        %{
+          id: child_spec_opts[:id],
+          start: {__MODULE__, :start_link, [start_link_options]}
+        }
       end
 
-      defoverridable run: 2, batched_run: 2, child_spec: 1, child_spec: 0
+      defoverridable run: 2,
+                     batched_run: 2,
+                     child_spec: 1,
+                     child_spec: 0,
+                     start_link: 0,
+                     start_link: 1
 
       unless is_nil(unquote(categories)) do
         require Bunch.Typespec
