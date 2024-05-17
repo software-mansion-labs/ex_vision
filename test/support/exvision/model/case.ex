@@ -43,7 +43,7 @@ defmodule ExVision.Model.Case do
           model = ctx[:model]
 
           {:ok, _supervisor} =
-            Supervisor.start_link([unquote(opts[:module]).child_spec(name: name)],
+            Supervisor.start_link([unquote(opts[:module]).child_spec(name: name, cache_path: "models")],
               strategy: :one_for_one
             )
 
@@ -68,7 +68,8 @@ defmodule ExVision.Model.Case do
           name: __MODULE__.TestProcess1,
           batch_size: 8,
           batch_timeout: 10,
-          partitions: true
+          partitions: true,
+          cache_path: "models"
         ]
 
         child_spec = {unquote(opts[:module]), options}
