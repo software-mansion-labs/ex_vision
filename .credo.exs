@@ -161,9 +161,9 @@
          priority: :normal, order: ~w/shortdoc moduledoc behaviour use import require alias/a},
         {Credo.Check.Consistency.MultiAliasImportRequireUse, false},
         {Credo.Check.Consistency.UnusedVariableNames, force: :meaningful},
-        {Credo.Check.Design.DuplicatedCode, false},
+        {Credo.Check.Design.DuplicatedCode, []},
         {Credo.Check.Readability.AliasAs, false},
-        {Credo.Check.Readability.MultiAlias, false},
+        {Credo.Check.Readability.MultiAlias, []},
         {Credo.Check.Readability.Specs, []},
         {Credo.Check.Readability.SinglePipe, false},
         {Credo.Check.Readability.WithCustomTaggedTuple, false},
@@ -172,10 +172,10 @@
         {Credo.Check.Refactor.DoubleBooleanNegation, false},
         {Credo.Check.Refactor.ModuleDependencies, false},
         {Credo.Check.Refactor.NegatedIsNil, false},
-        {Credo.Check.Refactor.PipeChainStart, false},
+        {Credo.Check.Refactor.PipeChainStart, []},
         {Credo.Check.Refactor.VariableRebinding, false},
-        {Credo.Check.Warning.LeakyEnvironment, false},
-        {Credo.Check.Warning.MapGetUnsafePass, false},
+        {Credo.Check.Warning.LeakyEnvironment, []},
+        {Credo.Check.Warning.MapGetUnsafePass, []},
         {Credo.Check.Warning.UnsafeToAtom, false}
 
         #

@@ -1,8 +1,0 @@
-[
-    {
-        "slug": "segmentation_deeplab_v3",
-        "version": 0,
-        "name": "DeepLab V3",
-        "url": "/segmentation/deeplab_v3"
-    }
-]

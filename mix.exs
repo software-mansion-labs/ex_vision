@@ -95,7 +95,8 @@ defmodule ExVision.Mixfile do
         Models: [
           ExVision.Classification.MobileNetV3Small,
           ExVision.Segmentation.DeepLabV3_MobileNetV3,
-          ExVision.Detection.Ssdlite320_MobileNetv3
+          ExVision.Detection.Ssdlite320_MobileNetv3,
+          ExVision.Detection.FasterRCNN_ResNet50_FPN
         ],
         Types: [
           ExVision.Types,

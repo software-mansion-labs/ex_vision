@@ -43,7 +43,8 @@ defmodule ExVision.Model.Case do
           model = ctx[:model]
 
           {:ok, _supervisor} =
-            Supervisor.start_link([unquote(opts[:module]).child_spec(name: name, cache_path: "models")],
+            Supervisor.start_link(
+              [unquote(opts[:module]).child_spec(name: name, cache_path: "models")],
               strategy: :one_for_one
             )
 

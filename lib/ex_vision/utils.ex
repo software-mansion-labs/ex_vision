@@ -131,14 +131,22 @@ defmodule ExVision.Utils do
   def onnx_result_backend_transfer(tuple),
     do: tuple |> Tuple.to_list() |> Enum.map(&Nx.backend_transfer/1) |> List.to_tuple()
 
-  @spec onnx_input_shape(struct()) :: tuple()
+  @spec onnx_input_shape(Ortex.Model.t()) :: tuple()
   def onnx_input_shape(%Ortex.Model{reference: r}) do
     ["input", "Float32", shape] =
-      Ortex.Native.show_session(r)
+      r
+      |> Ortex.Native.show_session()
       |> Enum.find(fn [name, _type, _shape] -> name == "input" end)
       |> hd()
 
     List.to_tuple(shape)
+  end
+
+  @spec onnx_output_names(Ortex.Model.t()) :: [String.t()]
+  def onnx_output_names(%Ortex.Model{reference: r}) do
+    {_inputs, outputs} = Ortex.Native.show_session(r)
+
+    Enum.map(outputs, fn {name, _type, _shape} -> name end)
   end
 
   defn softmax(x) do
