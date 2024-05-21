@@ -26,7 +26,7 @@ defmodule ExVision.Classification.MobileNetV3Small do
   end
 
   @impl true
-  def postprocessing({scores}, _metadata) do
+  def postprocessing(%{"output" => scores}, _metadata) do
     scores
     |> Nx.backend_transfer()
     |> Nx.flatten()

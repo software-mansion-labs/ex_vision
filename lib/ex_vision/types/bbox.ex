@@ -28,7 +28,10 @@ defmodule ExVision.Types.BBox do
           score: number()
         }
 
-  @typep t() :: t(term())
+  @typedoc """
+  Exactly like `t:t/1`, but doesn't put any constraints on the `label` field:
+  """
+  @type t() :: t(term())
 
   @doc """
   Return the width of the bounding box

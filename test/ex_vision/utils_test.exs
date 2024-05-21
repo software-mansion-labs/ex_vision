@@ -219,12 +219,12 @@ defmodule ExVision.UtilsTest do
   describe "convert_channel_spec/2" do
     test "converts :last to :first" do
       input = Nx.iota({1, 2, 3})
-      assert Utils.convert_channel_spec(input, :first) |> Nx.shape() == {3, 1, 2}
+      assert input |> Utils.convert_channel_spec(:first) |> Nx.shape() == {3, 1, 2}
     end
 
     test "converts :first to :last" do
       input = Nx.iota({3, 1, 2})
-      assert Utils.convert_channel_spec(input, :last) |> Nx.shape() == {1, 2, 3}
+      assert input |> Utils.convert_channel_spec(:last) |> Nx.shape() == {1, 2, 3}
     end
   end
 end

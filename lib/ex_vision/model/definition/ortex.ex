@@ -67,11 +67,11 @@ defmodule ExVision.Model.Definition.Ortex do
     end
   end
 
-  defmacrop get_client_postprocessing(module) do
+  defmacrop get_client_postprocessing(module, output_names) do
     quote do
       fn {result, _server_metadata}, metadata ->
         result
-        |> split_onnx_result()
+        |> split_onnx_result(unquote(output_names))
         |> Enum.zip(metadata)
         |> Enum.map(fn {result, metadata} -> unquote(module).postprocessing(result, metadata) end)
       end
@@ -93,11 +93,13 @@ defmodule ExVision.Model.Definition.Ortex do
          cache_options = Keyword.take(options, [:cache_path, :file_path]),
          {:ok, path} <- ExVision.Cache.lazy_get(model_path, cache_options),
          {:ok, model} <- do_load_model(path, options[:providers]) do
+      output_names = ExVision.Utils.onnx_output_names(model)
+
       model
       |> then(&Nx.Serving.new(Ortex.Serving, &1))
       |> Nx.Serving.batch_size(options[:batch_size])
       |> Nx.Serving.client_preprocessing(get_client_preprocessing(module))
-      |> Nx.Serving.client_postprocessing(get_client_postprocessing(module))
+      |> Nx.Serving.client_postprocessing(get_client_postprocessing(module, output_names))
       |> then(&{:ok, struct!(module, serving: &1)})
     end
   end
@@ -113,13 +115,17 @@ defmodule ExVision.Model.Definition.Ortex do
     end
   end
 
-  defp split_onnx_result(tuple) do
+  defp split_onnx_result(tuple, outputs) do
     tuple
     |> Tuple.to_list()
     |> Enum.map(fn x ->
+      # Do a backend transfer and also return a list of batches here
       x |> Nx.backend_transfer() |> Nx.to_batched(1)
     end)
     |> Enum.zip()
+    |> Enum.map(fn parts ->
+      parts |> Tuple.to_list() |> then(&Enum.zip(outputs, &1)) |> Enum.into(%{})
+    end)
   end
 
   @type using_option_t() :: {:base_dir, Path.t()} | {:name, String.t()}

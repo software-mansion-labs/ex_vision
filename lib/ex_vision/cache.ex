@@ -50,12 +50,19 @@ defmodule ExVision.Cache do
           {:ok, Path.t()} | {:error, reason :: any()}
   defp download_file(url, cache_path) do
     with :ok <- cache_path |> Path.dirname() |> File.mkdir_p(),
-         target_file = File.stream!(cache_path),
-         :ok <- do_download_file(url, target_file) do
-      if File.exists?(cache_path),
-        do: {:ok, cache_path},
-        else: {:error, :download_failed}
+         tmp_file_path = cache_path <> ".unconfirmed",
+         tmp_file = File.stream!(tmp_file_path),
+         :ok <- do_download_file(url, tmp_file),
+         :ok <- validate_download(tmp_file_path),
+         :ok <- File.rename(tmp_file_path, cache_path) do
+      {:ok, cache_path}
     end
+  end
+
+  defp validate_download(path) do
+    if File.exists?(path),
+      do: :ok,
+      else: {:error, :download_failed}
   end
 
   @spec do_download_file(URI.t(), File.Stream.t()) :: :ok | {:error, reason :: any()}

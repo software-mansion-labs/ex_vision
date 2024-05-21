@@ -12,7 +12,7 @@ defmodule ExVision.Segmentation.DeepLabV3_MobileNetV3 do
   end
 
   @impl true
-  def postprocessing({out, _aux}, metadata) do
+  def postprocessing(%{"output" => out}, metadata) do
     cls_per_pixel =
       out
       |> Nx.backend_transfer()

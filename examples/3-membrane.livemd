@@ -19,8 +19,7 @@ Mix.install(
   ],
   config: [
     nx: [default_backend: EXLA.Backend]
-  ],
-  force: true
+  ]
 )
 ```
 
@@ -55,7 +54,7 @@ But before we dive into the code, here are a few tips that will make it both eas
 defmodule Membrane.ExVision.Detector do
   use Membrane.Filter
 
-  alias ExVision.Detection.Ssdlite320_MobileNetv3, as: Model
+  alias ExVision.Detection.FasterRCNN_ResNet50_FPN, as: Model
   alias ExVision.Types.BBox
 
   # Define both input and output pads
