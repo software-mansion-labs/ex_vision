@@ -4,7 +4,6 @@ defmodule ExVision.Model.Definition do
   """
 
   require Bunch.Typespec
-  alias ExVision.{Cache, Utils}
 
   @callback load(keyword()) :: {:ok, ExVision.Model.t()} | {:error, reason :: atom()}
   @callback run(ExVision.Model.t(), ExVision.Model.input_t()) :: any()
@@ -23,34 +22,20 @@ defmodule ExVision.Model.Definition do
       end)
 
   defmacro __using__(options) do
+    Application.ensure_all_started(:req)
+
     options =
       Keyword.validate!(options, [
-        :base_dir,
+        :categories,
         name: module_to_name(__CALLER__.module)
       ])
 
-    model_path = Path.join(options[:base_dir], "model.onnx")
-
-    categories =
-      options[:base_dir]
-      |> Path.join("categories.json")
-      |> Cache.lazy_get(cache_path: "models")
-      |> case do
-        {:ok, categories_file} ->
-          Utils.load_categories(categories_file)
-
-        {:error, _reason} ->
-          nil
+    quote do
+      unless is_nil(unquote(options[:categories])) do
+        use ExVision.Model.Definition.Parts.WithCategories, unquote(options)
       end
 
-    categories_spec =
-      unless is_nil(categories),
-        do: categories |> Enum.uniq() |> Bunch.Typespec.enum_to_alternative()
-
-    quote do
       @behaviour ExVision.Model.Definition
-
-      @model_path unquote(model_path)
 
       @derive [ExVision.Model]
       @enforce_keys [:serving]
@@ -130,21 +115,6 @@ defmodule ExVision.Model.Definition do
                      child_spec: 0,
                      start_link: 0,
                      start_link: 1
-
-      unless is_nil(unquote(categories)) do
-        require Bunch.Typespec
-
-        @typedoc """
-        Type describing all categories recognised by #{unquote(options[:name])}
-        """
-        @type category_t() :: unquote(categories_spec)
-
-        @doc """
-        Returns a list of all categories recognised by #{unquote(options[:name])}
-        """
-        @spec categories() :: [category_t()]
-        def categories(), do: unquote(categories)
-      end
     end
   end
 end

@@ -131,19 +131,13 @@ defmodule ExVision.Model.Definition.Ortex do
   @type using_option_t() :: {:base_dir, Path.t()} | {:name, String.t()}
   @spec __using__([using_option_t()]) :: Macro.t()
   defmacro __using__(opts) do
-    Application.ensure_all_started(:req)
-
-    opts = Keyword.validate!(opts, [:base_dir, :name])
-    base_dir = opts[:base_dir]
-
-    model_path = Path.join(base_dir, "model.onnx")
+    {opts, generic_opts} = Keyword.split(opts, [:model])
+    opts = Keyword.validate!(opts, [:model])
+    model_path = Keyword.fetch!(opts, :model)
 
     quote do
-      use ExVision.Model.Definition, unquote(Keyword.take(opts, [:base_dir, :name]))
+      use ExVision.Model.Definition, unquote(generic_opts)
       @behaviour ExVision.Model.Definition.Ortex
-
-      @model_name unquote(opts[:name])
-      @model_path unquote(model_path)
 
       @doc """
       Creates the model instance
@@ -156,7 +150,7 @@ defmodule ExVision.Model.Definition.Ortex do
       end
 
       defp default_model_load(options) do
-        ExVision.Model.Definition.Ortex.load_ortex_model(__MODULE__, @model_path, options)
+        ExVision.Model.Definition.Ortex.load_ortex_model(__MODULE__, unquote(model_path), options)
       end
 
       @impl true
