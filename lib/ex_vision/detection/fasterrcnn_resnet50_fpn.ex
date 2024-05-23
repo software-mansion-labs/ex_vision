@@ -3,8 +3,8 @@ defmodule ExVision.Detection.FasterRCNN_ResNet50_FPN do
   FasterRCNN object detector with ResNet50 backbone and FPN detection head, exported from torchvision.
   """
   use ExVision.Model.Definition.Ortex,
-    model: "detection/fasterrcnn_resnet50_fpn/model.onnx",
-    categories: "detection/fasterrcnn_resnet50_fpn/categories.json"
+    model: "fasterrcnn_resnet50_fpn_detector.onnx",
+    categories: "coco_categories.json"
 
   use ExVision.Detection.GenericDetector
 

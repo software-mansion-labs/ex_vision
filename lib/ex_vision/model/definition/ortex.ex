@@ -21,7 +21,7 @@ defmodule ExVision.Model.Definition.Ortex do
 
   In this callback, you should transform the output to match your desired format.
   """
-  @callback postprocessing(tuple(), ImageMetadata.t()) :: ExVision.Model.output_t()
+  @callback postprocessing(map(), ImageMetadata.t()) :: ExVision.Model.output_t()
 
   @typedoc """
   A type describing ONNX provider that can be used with ExVision.

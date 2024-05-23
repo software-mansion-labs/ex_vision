@@ -15,8 +15,7 @@ defmodule ExVision.Detection.GenericDetector do
     ExVision.Utils.resize(img, {224, 224})
   end
 
-  @spec postprocessing({Nx.Tensor.t(), Nx.Tensor.t(), Nx.Tensor.t()}, ImageMetadata.t(), [atom()]) ::
-          output_t()
+  @spec postprocessing(map(), ImageMetadata.t(), [atom()]) :: output_t()
   def postprocessing(
         %{"boxes" => bboxes, "scores" => scores, "labels" => labels},
         metadata,

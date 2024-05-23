@@ -3,8 +3,8 @@ defmodule ExVision.Segmentation.DeepLabV3_MobileNetV3 do
   A semantic segmentation model for MobileNetV3 Backbone. Exported from torchvision.
   """
   use ExVision.Model.Definition.Ortex,
-    model: "segmentation/deeplab_v3_mobilenetv3/model.onnx",
-    categories: "segmentation/deeplab_v3_mobilenetv3/categories.json"
+    model: "deeplab_v3_mobilenetv3_segmentation.onnx",
+    categories: "coco_with_voc_labels_categories.json"
 
   @type output_t() :: %{category_t() => Nx.Tensor.t()}
 
