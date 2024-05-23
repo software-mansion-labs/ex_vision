@@ -6,7 +6,7 @@ import torch
 import json
 from pathlib import Path
 
-base_dir = Path("models/segmentation/deeplab_v3")
+base_dir = Path("models/segmentation/deeplab_v3_mobilenetv3")
 base_dir.mkdir(parents=True, exist_ok=True)
 
 model_file = base_dir / "model.onnx"
