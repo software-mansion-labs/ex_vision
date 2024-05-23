@@ -4,7 +4,9 @@ defmodule ExVision.Classification.MobileNetV3Small do
   Exported from `torchvision`.
   Weights from Imagenet 1k.
   """
-  use ExVision.Model.Definition.Ortex, base_dir: "classification/mobilenetv3small"
+  use ExVision.Model.Definition.Ortex,
+    model: "mobilenetv3small-classifier.onnx",
+    categories: "imagenet_v2_categories.json"
 
   require Bunch.Typespec
   alias ExVision.Utils
