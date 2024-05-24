@@ -9,7 +9,7 @@ defmodule ExVision.Model.Case do
 
     quote do
       use ExUnit.Case, async: true
-      use ExVision.TestUtils.MockCacheServer
+      # use ExVision.TestUtils.MockCacheServer
       @behaviour ExVision.Model.Case
 
       setup_all do
