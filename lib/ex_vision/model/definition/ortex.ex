@@ -36,7 +36,7 @@ defmodule ExVision.Model.Definition.Ortex do
 
   - `:cache_path` - specifies a caching directory for this model.
   - `:providers` - a list of desired providers, sorted by preference. Onnx will attempt to use the first available provider. If none of the provided is available, onnx will fallback to `:cpu`. Default: `[:cpu]`
-  - `:batch_size` - specifies a default batch size for this instance. Default: `1`
+  - `:batch_size` - specifies a default batch size for this instance. Default: `1`.
   """
   @type load_option_t() ::
           {:cache_path, Path.t()}

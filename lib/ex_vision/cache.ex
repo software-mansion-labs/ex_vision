@@ -10,13 +10,17 @@ defmodule ExVision.Cache do
     Application.get_env(:ex_vision, :cache_path, @default_cache_path)
   end
 
-  @default_server_url Application.compile_env(:ex_vision, :server_url, "http://localhost:8000")
+  @default_server_url Application.compile_env(
+                        :ex_vision,
+                        :server_url,
+                        URI.new!("https://ai.swmansion.com/exvision/files")
+                      )
   defp get_server_url() do
     Application.get_env(:ex_vision, :server_url, @default_server_url)
   end
 
   @type lazy_get_option_t() ::
-          {:cache_path, Path.t()} | {:server_url, String.t() | URI.t()} | {:force, true}
+          {:cache_path, Path.t()} | {:server_url, String.t() | URI.t()} | {:force, boolean()}
 
   @doc """
   Lazily evaluate the path from the cache directory.
@@ -73,7 +77,8 @@ defmodule ExVision.Cache do
       {:ok, _resp} ->
         :ok
 
-      {:error, _reason} = error ->
+      {:error, reason} = error ->
+        Logger.error("Failed to download the file due to #{inspect(reason)}")
         File.rm(target_file_path)
         error
     end
