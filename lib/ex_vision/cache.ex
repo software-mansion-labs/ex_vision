@@ -64,7 +64,6 @@ defmodule ExVision.Cache do
 
   @impl true
   def handle_info({ref, result}, state) do
-    Logger.info("Task #{inspect(ref)} finished with #{inspect(result)}")
     state = emit(result, ref, state)
     {:noreply, state}
   end
