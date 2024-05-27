@@ -6,16 +6,13 @@ defmodule ExVision.CacheTest do
 
   @moduletag :tmp_dir
 
-  setup %{tmp_dir: tmp_dir} do
-    app_env_override(:server_url, URI.new!("http://mock_server:8000"))
-    app_env_override(:cache_path, tmp_dir)
-  end
-
   setup ctx do
     files =
       Map.get(ctx, :files, %{
         "/test" => rand_string(256)
       })
+
+    set_mimic_global()
 
     stub(Req, :get, fn
       %URI{host: "mock_server", port: 8000, path: path}, options ->
@@ -39,34 +36,35 @@ defmodule ExVision.CacheTest do
     [files: files]
   end
 
+  setup %{tmp_dir: tmp_dir} do
+    {:ok, _cache} =
+      Cache.start_link(
+        name: MyCache,
+        server_url: URI.new!("http://mock_server:8000"),
+        cache_path: tmp_dir
+      )
+
+    :ok
+  end
+
   test "Can download the file", ctx do
     [{path, expected_contents}] = Enum.to_list(ctx.files)
     expected_path = Path.join(ctx.tmp_dir, path)
-    assert {:ok, ^expected_path} = Cache.lazy_get(path)
+    assert {:ok, ^expected_path} = Cache.lazy_get(MyCache, path)
     verify_download(expected_path, expected_contents)
   end
 
   test "will fail if server is unreachable" do
-    app_env_override(:server_url, URI.new!("http://localhost:9999"))
-    assert {:error, :connection_failed} = Cache.lazy_get("/test")
-    assert {:error, :connection_failed} = Cache.lazy_get("/test")
+    url = "http://localhost:9999"
+    {:ok, c} = Cache.start_link(server_url: url, name: nil)
+
+    assert {:error, :connection_failed} = Cache.lazy_get(c, "/test")
+    assert {:error, :connection_failed} = Cache.lazy_get(c, "/test")
   end
 
   test "will fail if we request file that doesn't exist" do
-    assert {:error, :doesnt_exist} = Cache.lazy_get("/idk")
-    assert {:error, :doesnt_exist} = Cache.lazy_get("/idk")
-  end
-
-  defp app_env_override(key, new_value) do
-    original = Application.fetch_env(:ex_vision, key)
-    Application.put_env(:ex_vision, key, new_value)
-
-    on_exit(fn ->
-      case original do
-        {:ok, value} -> Application.put_env(:ex_vision, key, value)
-        :error -> Application.delete_env(:ex_vision, key)
-      end
-    end)
+    assert {:error, :doesnt_exist} = Cache.lazy_get(MyCache, "/idk")
+    assert {:error, :doesnt_exist} = Cache.lazy_get(MyCache, "/idk")
   end
 
   defp verify_download(path, expected_contents) do

@@ -4,7 +4,7 @@ defmodule ExVision.Segmentation.DeepLabV3_MobileNetV3 do
   """
   use ExVision.Model.Definition.Ortex,
     model: "deeplab_v3_mobilenetv3_segmentation.onnx",
-    categories: "coco_with_voc_labels_categories.json"
+    categories: "assets/categories/coco_with_voc_labels_categories.json"
 
   @type output_t() :: %{category_t() => Nx.Tensor.t()}
 

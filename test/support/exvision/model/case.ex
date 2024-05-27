@@ -9,11 +9,11 @@ defmodule ExVision.Model.Case do
 
     quote do
       use ExUnit.Case, async: true
-      use ExVision.TestUtils.MockCacheServer
+      # use ExVision.TestUtils.MockCacheServer
       @behaviour ExVision.Model.Case
 
       setup_all do
-        {:ok, model} = unquote(opts[:module]).load(cache_path: "models")
+        {:ok, model} = unquote(opts[:module]).load()
         [model: model]
       end
 
@@ -34,7 +34,7 @@ defmodule ExVision.Model.Case do
       end
 
       test "child_spec/1" do
-        assert spec = unquote(opts[:module]).child_spec(cache_path: "models")
+        assert spec = unquote(opts[:module]).child_spec()
       end
 
       describe "stateful/process workflow" do
@@ -44,7 +44,7 @@ defmodule ExVision.Model.Case do
 
           {:ok, _supervisor} =
             Supervisor.start_link(
-              [unquote(opts[:module]).child_spec(name: name, cache_path: "models")],
+              [unquote(opts[:module]).child_spec(name: name)],
               strategy: :one_for_one
             )
 
@@ -69,8 +69,7 @@ defmodule ExVision.Model.Case do
           name: __MODULE__.TestProcess1,
           batch_size: 8,
           batch_timeout: 10,
-          partitions: true,
-          cache_path: "models"
+          partitions: true
         ]
 
         child_spec = {unquote(opts[:module]), options}

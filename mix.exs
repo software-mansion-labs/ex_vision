@@ -30,6 +30,8 @@ defmodule ExVision.Mixfile do
 
   def application do
     [
+      included_applications: [:ex_vision],
+      mod: {ExVision, []},
       extra_applications: []
     ]
   end

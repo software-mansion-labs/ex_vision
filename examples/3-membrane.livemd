@@ -93,7 +93,6 @@ defmodule Membrane.ExVision.Detector do
       |> then(&"#{&1}")
       |> :base64.encode()
       |> String.to_atom()
-      |> dbg()
 
     {:ok, pid} = Model.start_link(name: name)
 
