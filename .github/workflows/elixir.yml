@@ -32,8 +32,6 @@ jobs:
           path: deps
           key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
           restore-keys: ${{ runner.os }}-mix-
-      - name: Checkout LFS
-        uses: nschloe/action-cached-lfs-checkout@v1.1.2
       - name: Install dependencies
         run: mix deps.get && mix deps.compile
       - name: Checks if compiles without warning
