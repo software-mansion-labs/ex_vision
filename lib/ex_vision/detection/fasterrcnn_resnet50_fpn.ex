@@ -4,7 +4,7 @@ defmodule ExVision.Detection.FasterRCNN_ResNet50_FPN do
   """
   use ExVision.Model.Definition.Ortex,
     model: "fasterrcnn_resnet50_fpn_detector.onnx",
-    categories: "coco_categories.json"
+    categories: "assets/categories/coco_categories.json"
 
   use ExVision.Detection.GenericDetector
 

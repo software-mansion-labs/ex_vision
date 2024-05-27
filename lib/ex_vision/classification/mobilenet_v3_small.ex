@@ -6,7 +6,7 @@ defmodule ExVision.Classification.MobileNetV3Small do
   """
   use ExVision.Model.Definition.Ortex,
     model: "mobilenetv3small-classifier.onnx",
-    categories: "imagenet_v2_categories.json"
+    categories: "assets/categories/imagenet_v2_categories.json"
 
   require Bunch.Typespec
   alias ExVision.Utils

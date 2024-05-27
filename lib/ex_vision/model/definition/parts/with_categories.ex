@@ -1,24 +1,11 @@
 defmodule ExVision.Model.Definition.Parts.WithCategories do
   @moduledoc false
   require Logger
-  alias ExVision.{Cache, Utils}
-
-  defp get_categories(file) do
-    file
-    |> Cache.lazy_get()
-    |> case do
-      {:ok, file} ->
-        Utils.load_categories(file)
-
-      error ->
-        Logger.error("Failed to load categories from #{file} due to #{inspect(error)}")
-        raise "Failed to load categories from #{file}"
-    end
-  end
+  alias ExVision.Utils
 
   defmacro __using__(options) do
     options = Keyword.validate!(options, [:name, :categories])
-    categories = options |> Keyword.fetch!(:categories) |> get_categories()
+    categories = options |> Keyword.fetch!(:categories) |> Utils.load_categories()
     spec = categories |> Enum.uniq() |> Bunch.Typespec.enum_to_alternative()
 
     quote do

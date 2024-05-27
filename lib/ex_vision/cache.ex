@@ -1,9 +1,12 @@
 defmodule ExVision.Cache do
   @moduledoc false
+  alias ExVision.Cache.PubSub
 
   # Module responsible for handling model file caching
 
   require Logger
+
+  alias ExVision.Cache.PubSub
 
   @default_cache_path Application.compile_env(:ex_vision, :cache_path, "/tmp/ex_vision/cache")
   defp get_cache_path() do
@@ -21,6 +24,11 @@ defmodule ExVision.Cache do
 
   @type lazy_get_option_t() ::
           {:cache_path, Path.t()} | {:server_url, String.t() | URI.t()} | {:force, boolean()}
+
+  @spec child_spec(keyword())
+  def child_spec(_opts) do
+    Registry.child_spec(name: __MODULE__)
+  end
 
   @doc """
   Lazily evaluate the path from the cache directory.
@@ -48,6 +56,16 @@ defmodule ExVision.Cache do
         download_file(download_url, cache_path)
       end
     end
+  end
+
+  defp create_download_job(url, cache_path) do
+    key = {url, cache_path}
+
+    spawn(fn ->
+      PubSub.notify(__MODULE__, key, download_file(url, cache_path))
+    end)
+
+    PubSub.subscribe(__MODULE__, key)
   end
 
   @spec download_file(URI.t(), Path.t()) ::
@@ -108,4 +126,26 @@ defmodule ExVision.Cache do
 
   defp ensure_backslash("/" <> _rest = path), do: path
   defp ensure_backslash(path), do: "/" <> path
+end
+
+defmodule ExVision.Cache.PubSub do
+  @moduledoc false
+
+  @spec subscribe(term(), Path.t()) :: :ok
+  def subscribe(registry, key) do
+    Registry.register(registry, key, [])
+
+    receive do
+      {^registry, :notification, result} ->
+        Registry.unregister(registry, key)
+        result
+    end
+  end
+
+  @spec notify(term(), Path.t()) :: :ok
+  def notify(registry, key, result) do
+    Registry.dispatch(registry, key, fn entries ->
+      for {pid, _value} <- entries, do: send(pid, {registry, :notification, result})
+    end)
+  end
 end
