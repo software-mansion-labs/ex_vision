@@ -85,13 +85,11 @@ defmodule ExVision.Model.Definition.Ortex do
           {:ok, ExVision.Model.t()} | {:error, atom()}
   def load_ortex_model(module, model_path, options) do
     with {:ok, options} <-
-           Keyword.validate(options, [
-             :cache_path,
+           Keyword.validate(options,
              batch_size: 1,
              providers: [:cpu]
-           ]),
-         cache_options = Keyword.take(options, [:cache_path, :file_path]),
-         {:ok, path} <- ExVision.Cache.lazy_get(model_path, cache_options),
+           ),
+         {:ok, path} <- ExVision.Cache.lazy_get(ExVision.Cache, model_path),
          {:ok, model} <- do_load_model(path, options[:providers]) do
       output_names = ExVision.Utils.onnx_output_names(model)
 
