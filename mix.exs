@@ -1,10 +1,8 @@
 defmodule ExVision.Mixfile do
   use Mix.Project
 
-  # TODO: make sure that the links here are correct
-
-  @version "0.1.0"
-  @github_url "https://github.com/software-mansion-labs/ex_vision"
+  @version "0.1.0-rc1"
+  @github_url "https://github.com/membraneframework-labs/ex_vision/"
 
   def project do
     [

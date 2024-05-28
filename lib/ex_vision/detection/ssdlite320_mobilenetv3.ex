@@ -4,7 +4,7 @@ defmodule ExVision.Detection.Ssdlite320_MobileNetv3 do
   """
   use ExVision.Model.Definition.Ortex,
     model: "ssdlite320_mobilenetv3_detector.onnx",
-    categories: "assets/categories/coco_categories.json"
+    categories: "priv/categories/coco_categories.json"
 
   use ExVision.Detection.GenericDetector
 
