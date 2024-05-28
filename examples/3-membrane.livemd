@@ -5,7 +5,7 @@
 ```elixir
 Mix.install(
   [
-    {:ex_vision, path: Path.join(__DIR__, "..")},
+    :ex_vision,
     :image,
     :membrane_core,
     :membrane_file_plugin,
@@ -54,7 +54,7 @@ But before we dive into the code, here are a few tips that will make it both eas
 defmodule Membrane.ExVision.Detector do
   use Membrane.Filter
 
-  alias ExVision.Detection.FasterRCNN_ResNet50_FPN, as: Model
+  alias ExVision.Detection.Ssdlite320_MobileNetv3, as: Model
   alias ExVision.Types.BBox
 
   # Define both input and output pads
@@ -161,11 +161,11 @@ defmodule Pipeline do
   use Membrane.Pipeline
 
   @impl true
-  def handle_init(_ctx, output_file) do
+  def handle_init(_ctx, {input_file, output_file}) do
     structure =
       child(%Membrane.File.Source{
         chunk_size: 1024,
-        location: Path.join(__DIR__, "files/big-buck-bunny-short.mp4"),
+        location: input_file,
         seekable?: true
       })
       |> child(:demuxer, %Membrane.MP4.Demuxer.ISOM{optimize_for_non_fast_start?: true})
@@ -210,7 +210,10 @@ We have written the Filter responsible for applying our model and the full proce
 
 ```elixir
 output_file = Path.join("/tmp", "#{DateTime.utc_now()}.mp4")
-{:ok, _supervisor_pid, pipeline_pid} = Membrane.Pipeline.start(Pipeline, output_file)
+{:ok, input_file} = ExVision.Cache.lazy_get(ExVision.Cache, "big-buck-bunny-short.mp4")
+
+{:ok, _supervisor_pid, pipeline_pid} =
+  Membrane.Pipeline.start(Pipeline, {input_file, output_file})
 
 Kino.nothing()
 ```

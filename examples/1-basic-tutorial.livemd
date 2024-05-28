@@ -5,7 +5,7 @@
 ```elixir
 Mix.install(
   [
-    {:ex_vision, path: Path.join(__DIR__, "..")},
+    :ex_vision,
     :kino,
     :kino_bumblebee,
     :stb_image,
@@ -33,7 +33,7 @@ The main objective of ExVision is ease of use. This sacrifices some control over
 
 ```elixir
 alias ExVision.Classification.MobileNetV3Small, as: Classifier
-alias ExVision.Detection.Ssdlite320_MobileNetv3, as: Detector
+alias ExVision.Detection.FasterRCNN_ResNet50_FPN, as: Detector
 alias ExVision.Segmentation.DeepLabV3_MobileNetV3, as: Segmentation
 
 {:ok, classifier} = Classifier.load()
@@ -83,8 +83,12 @@ input = Kino.Input.image("Image to evaluate", format: :jpeg)
 ```elixir
 img_path =
   case Kino.Input.read(input) do
-    nil -> Path.join(__DIR__, "files/cat.jpg")
-    %{file_ref: image} -> Kino.Input.file_path(image)
+    nil ->
+      {:ok, file} = ExVision.Cache.lazy_get(ExVision.Cache, "cat.jpg")
+      file
+
+    %{file_ref: image} ->
+      Kino.Input.file_path(image)
   end
 
 image = Image.open!(img_path)
@@ -127,10 +131,7 @@ scored_list = Kino.Bumblebee.ScoredList.new(predictions)
 
 Kino.Layout.grid(
   [
-    Kino.Layout.grid([
-      image,
-      Kino.Text.new("This image shows an object of class `#{Atom.to_string(top_prediction)}`")
-    ]),
+    image,
     Kino.Layout.grid([Kino.Text.new("Class probabilities"), scored_list])
   ],
   columns: 2,

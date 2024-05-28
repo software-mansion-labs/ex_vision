@@ -5,7 +5,7 @@
 ```elixir
 Mix.install(
   [
-    {:ex_vision, path: Path.join(__DIR__, "..")},
+    :ex_vision,
     :exla,
     :kino,
     :nx,
