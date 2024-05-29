@@ -36,19 +36,29 @@ In this example we will showcase ExVision by integrating it into media processin
 
 You will learn how to write a [Membrane Filter element](https://membrane.stream/learn/get_started_with_membrane/3) that makes use of one of the ExVision's models, using an example of object detection.
 
+In particular, we will implement a bird detector.
+
 ## Integrate with Membrane
 
 The main part of integrating with Membrane is implementing a Filter - an element which is responsible for applying a transformation on each frame in the stream.
 
 But before we dive into the code, here are a few tips that will make it both easier to understand and easier to modify for your own usecase:
 
-* **It's useful to constrain an accepted format on input and output pads to `%Membrane.RawVideo{pixel_format: :RGB}`.**
+* It's useful to constrain an accepted format on input and output pads to `%Membrane.RawVideo{pixel_format: :RGB}`.
 
   This format is equivalent to a stream of raw frames in RGB format, which is what most models are trained to accept. By setting this constraint, Membrane will be able to perform a sanity check to highlight errors some obvious errors in the processing pipeline.
 
-* **Model should be loaded in the `handle_setup/2` callback and stored in the element state.**
+* Model should be loaded in the `handle_setup/2` callback and stored in the element state.
 
-  It may be tempting to initialize the model in `handle_init/2` but it will delay the initialization of the pipeline, as it runs in the pipeline process, not the element process. It's however even more important to not initialize it in `handle_buffer/3`, as this callback is called for every single frame.
+  It may be tempting to initialize the model in `handle_init/2` but it will delay the initialization of the pipeline, as it runs in the pipeline process, not the element process
+
+### Writing the Membrane Element
+
+With that knowledge, let's implement the Membrane Filter that will be responsible for:
+
+1. initialization of the detection model
+2. feeding the frames through the detector
+3. Drawing the boxes indicating the detected birds in the resulting image, using the `:image` library
 
 ```elixir
 defmodule Membrane.ExVision.Detector do
@@ -85,8 +95,12 @@ defmodule Membrane.ExVision.Detector do
     {[], %State{}}
   end
 
+  # Model initialization should be performed in this callback
   @impl true
-  def handle_setup(ctx, state) do
+  def handle_setup(_ctx, state) do
+    # due to the quirk in Nx.Serving, all servings need to be registered,
+    # as it's impossible  to make a call to Nx.Serving using PID
+    # Generate a random process name
     name =
       10
       |> :crypto.strong_rand_bytes()
@@ -94,15 +108,12 @@ defmodule Membrane.ExVision.Detector do
       |> :base64.encode()
       |> String.to_atom()
 
-    {:ok, pid} = Model.start_link(name: name)
-
-    Membrane.ResourceGuard.register(ctx.resource_guard, fn ->
-      GenServer.stop(pid)
-    end)
+    {:ok, _pid} = Model.start_link(name: name)
 
     {[], %State{state | detector: name}}
   end
 
+  # The frames will be received in this callback
   @impl true
   def handle_buffer(:input, buffer, ctx, %State{detector: detector} = state) do
     tensor = buffer_to_tensor(buffer, ctx.pads.input.stream_format)
@@ -113,9 +124,9 @@ defmodule Membrane.ExVision.Detector do
       detector
       |> Model.batched_run(tensor)
       # filter out butterfly bounding boxes
-      |> Enum.filter(fn %BBox{score: score} -> score > 0.3 end)
+      |> Enum.filter(fn %BBox{score: score, label: label} -> score > 0.3 and label == :bird end)
 
-    # For each bounding box, represent it as a rectangle on the
+    # For each bounding box, represent it as a rectangle in the image
     image =
       Enum.reduce(predictions, image, fn %BBox{} = prediction, image ->
         image
@@ -130,9 +141,11 @@ defmodule Membrane.ExVision.Detector do
         )
       end)
 
+    # Emit the resulting buffer
     {[buffer: {:output, fill_buffer_with_image(image, buffer)}], state}
   end
 
+  # Utility function that will 
   defp buffer_to_tensor(%Membrane.Buffer{payload: payload}, %Membrane.RawVideo{
          width: w,
          height: h
@@ -142,6 +155,8 @@ defmodule Membrane.ExVision.Detector do
     |> Nx.reshape({h, w, 3}, names: [:height, :width, :colors])
   end
 
+  # Replaces the payload of the Membrane Buffer with the image contents
+  # This way, we're maintaining the buffer metadata, ex. the timestamps
   defp fill_buffer_with_image(image, buffer) do
     image |> Image.to_nx!(shape: :hwc) |> Nx.to_binary() |> then(&%{buffer | payload: &1})
   end
@@ -152,9 +167,19 @@ end
 
 <!-- livebook:{"break_markdown":true} -->
 
-The next step is to define a processing pipeline. In this case, we will read the video from the file, feed it through our `Detector` element and then transform it back into a video in `.mp4` format.
+Now that we have a Membrane Filter implemented, the next step is to define a processing pipeline.
 
-The details of this process can be quite difficult to understand and very much depend on the input and output methods. If you're comfortable in this field, feel free to skip the next section with the explanation of this pipeline.
+In this case, we will read the video from the file, feed it through our `Detector` element and then transform it back into a video in `.mp4` format.
+
+The details of this process can be a little complicated. That said, in simple terms, we're going to:
+
+1. read the file
+2. Parse the MP4 structure and extract the video from it
+3. Decode the video to achieve raw frames (images) and convert them to RGB
+4. **Apply our `Detector` module**
+5. Encode our images to H264
+6. Put our resulting video into the MP4 container
+7. Save the result to the file
 
 ```elixir
 defmodule Pipeline do
@@ -180,7 +205,6 @@ defmodule Pipeline do
       |> child(%Membrane.H264.FFmpeg.Encoder{profile: :baseline})
       |> child(%Membrane.H264.Parser{
         output_stream_structure: :avc1
-        # generate_best_effort_timestamps: %{framerate: {25, 1}}
       })
       |> child(Membrane.MP4.Muxer.ISOM)
       |> child(:sink, %Membrane.File.Sink{
@@ -202,36 +226,28 @@ defmodule Pipeline do
 end
 ```
 
-Membrane pipelines will not automatically terminate after they finish processing, but this is the desired behaviour. Therefore, we will implement the termination of the pipeline process once we receive `end_of_stream` signal on the `:input` pad of our File sink, by making use of the `handle_element_end_of_stream/4` callback.
+You're welcome to run the inference on your own file, but please keep in mind that this pipeline is specific to MP4 files containing H264 video and no audio stream, it will not work on other type of files.
 
 ## Run inference
 
-We have written the Filter responsible for applying our model and the full processing pipeline! It's time to make use of it. Let's define the location of our output file and execute the code
+We have written the Filter responsible for applying our model and the full processing pipeline! It's time to make use of it. Let's download our input file first:
+
+```elixir
+{:ok, input_file} = ExVision.Cache.lazy_get(ExVision.Cache, "assets/example.mp4")
+```
+
+Define the location of our output file:
 
 ```elixir
 output_file = Path.join("/tmp", "#{DateTime.utc_now()}.mp4")
-{:ok, input_file} = ExVision.Cache.lazy_get(ExVision.Cache, "big-buck-bunny-short.mp4")
-
-{:ok, _supervisor_pid, pipeline_pid} =
-  Membrane.Pipeline.start(Pipeline, {input_file, output_file})
-
-Kino.nothing()
 ```
 
-## Explanation of the processing pipeline
+And finally, execute our pipeline
 
-The pipeline does the following transformations in order to obtain the RGB images for processing:
-
-1. Reads the file from the disk
-2. Demuxes it from the MP4, resulting in H264 stream structured using AVC1 format
-3. Parses it as H264 and coverts the structure to Annex B (nalu is delimited by `{0,0,1}`)
-4. Decodes H264, obtaining raw images in YUV420
-5. Converts the pixel formats from yuv420 to rgb
-6. Applies our `Detector` element
-7. Transforms the frames back to yuv420
-8. Encodes the frames to H264 and coverts them to `:avc` format in preparation for muxing into MP4
-9. Muxes (puts into the container) the H264 stream to `.mp4` format
-10. Writes the resulting bytestream to the file on the disk
+```elixir
+{:ok, _supervisor_pid, pipeline_pid} =
+  Membrane.Pipeline.start(Pipeline, {input_file, output_file})
+```
 
 ## Download the results
 
