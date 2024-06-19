@@ -78,10 +78,10 @@ In order to compile, ExVision **requires Rust and Cargo** to be installed on you
 We have identified a set of models that we would like to support.
 If the model that you would like to use is missing, feel free to open the issue, express interest in an existing one or contribute the model directly.
 
-- [ ] Classification
+- [x] Classification
   - [x] MobileNetV3 Small
-  - [ ] EfficientNetV2
-  - [ ] SqueezeNet
+  - [x] EfficientNetV2
+  - [x] SqueezeNet
 - [x] Object detection
   - [x] SSDLite320 - MobileNetV3 Large backbone
   - [x] FasterRCNN ResNet50 FPN
