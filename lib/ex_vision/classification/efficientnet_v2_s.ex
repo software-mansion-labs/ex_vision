@@ -8,13 +8,7 @@ defmodule ExVision.Classification.EfficientNet_V2_S do
     model: "efficientnet_v2_s_classifier.onnx",
     categories: "priv/categories/imagenet_v2_categories.json"
 
-  require Bunch.Typespec
-  alias ExVision.Utils
-
-  @typedoc """
-  A type describing the output of EfficientNet_V2_S classifier as a mapping of category to probability.
-  """
-  @type output_t() :: %{category_t() => number()}
+  use ExVision.Classification.GenericClassifier
 
   @impl true
   def preprocessing(image, _metadata) do
@@ -25,16 +19,5 @@ defmodule ExVision.Classification.EfficientNet_V2_S do
       Nx.tensor([0.229, 0.224, 0.225]),
       channels: :first
     )
-  end
-
-  @impl true
-  def postprocessing(%{"output" => scores}, _metadata) do
-    scores
-    |> Nx.backend_transfer()
-    |> Nx.flatten()
-    |> Utils.softmax()
-    |> Nx.to_flat_list()
-    |> then(&Enum.zip(categories(), &1))
-    |> Map.new()
   end
 end

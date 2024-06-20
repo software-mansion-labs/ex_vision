@@ -3,7 +3,7 @@ defmodule ExVision.Classification.MobileNetV3Test do
   use ExVision.Model.Case, module: ExVision.Classification.MobileNetV3Small
   use ExVision.TestUtils
 
-  @expected_result "test/assets/results/classification/mobilenetv3.json"
+  @expected_result "test/assets/results/classification/mobilenet_v3_small.json"
                    |> File.read!()
                    |> Jason.decode!()
                    |> Map.new(fn {k, v} -> {ExVision.Utils.normalize_category_name(k), v} end)
