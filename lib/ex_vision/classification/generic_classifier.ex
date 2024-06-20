@@ -1,6 +1,16 @@
 defmodule ExVision.Classification.GenericClassifier do
+  @moduledoc false
+
+  # Contains a default implementation of post processing for TorchVision classifiers
+  # To use: `use ExVision.Classification.GenericClassifier`
+
   alias ExVision.Utils
 
+  alias ExVision.Types.ImageMetadata
+
+  @typep output_t() :: %{atom() => number()}
+
+  @spec postprocessing(map(), ImageMetadata.t(), [atom()]) :: output_t()
   def postprocessing(%{"output" => scores}, _metadata, categories) do
     scores
     |> Nx.backend_transfer()
