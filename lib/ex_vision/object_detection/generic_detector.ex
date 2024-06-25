@@ -70,7 +70,7 @@ defmodule ExVision.ObjectDetection.GenericDetector do
       defdelegate preprocessing(image, metadata), to: ExVision.ObjectDetection.GenericDetector
 
       @impl true
-      @spec postprocessing(tuple(), ExVision.Types.ImageMetadata.t()) :: output_t()
+      @spec postprocessing(map(), ExVision.Types.ImageMetadata.t()) :: output_t()
       def postprocessing(output, metadata) do
         ExVision.ObjectDetection.GenericDetector.postprocessing(output, metadata, categories())
       end
