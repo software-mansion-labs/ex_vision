@@ -1,11 +1,11 @@
-defmodule ExVision.Classification.MobileNetV3Small do
+defmodule ExVision.Classification.SqueezeNet1_1 do
   @moduledoc """
-  An object detector based on MobileNetV1 Large.
+  An object classifier based on SqueezeNet1_1.
   Exported from `torchvision`.
   Weights from Imagenet 1k.
   """
   use ExVision.Model.Definition.Ortex,
-    model: "mobilenetv3small-classifier.onnx",
+    model: "squeezenet1_1_classifier.onnx",
     categories: "priv/categories/imagenet_v2_categories.json"
 
   use ExVision.Classification.GenericClassifier
