@@ -89,8 +89,8 @@ If the model that you would like to use is missing, feel free to open the issue,
   - [x] DeepLabV3 - MobileNetV3
 - [x] Instance segmentation
   - [x] Mask R-CNN
-- [ ] Keypoint Detection
-  - [ ] Keypoint R-CNN
+- [x] Keypoint Detection
+  - [x] Keypoint R-CNN
 
 ## Copyright and License
 
