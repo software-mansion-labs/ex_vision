@@ -36,11 +36,13 @@ alias ExVision.Classification.MobileNetV3Small, as: Classifier
 alias ExVision.ObjectDetection.FasterRCNN_ResNet50_FPN, as: ObjectDetector
 alias ExVision.SemanticSegmentation.DeepLabV3_MobileNetV3, as: SemanticSegmentation
 alias ExVision.InstanceSegmentation.MaskRCNN_ResNet50_FPN_V2, as: InstanceSegmentation
+alias ExVision.KeypointDetection.KeypointRCNN_ResNet50_FPN, as: KeypointDetector
 
 {:ok, classifier} = Classifier.load()
 {:ok, object_detector} = ObjectDetector.load()
 {:ok, semantic_segmentation} = SemanticSegmentation.load()
 {:ok, instance_segmentation} = InstanceSegmentation.load()
+{:ok, keypoint_detector} = KeypointDetector.load()
 
 Kino.nothing()
 ```
@@ -61,9 +63,11 @@ Under the hood, all of these formats will be converted to Nx's Tensors and norma
 
 A big point of ExVision over using the models directly has to be documentation and intuitive outputs. Hence, models return the following types:
 
-* Classifier - a mapping the category into the probability: [`%{category_t() => number()}`](http://localhost:55556/ExVision.Classification.MobileNetV3.html#t:output_t/0)
-* Detector - a list of bounding boxes: [`list(BBox.t())`](http://localhost:55556/ExVision.Detection.Ssdlite320_MobileNetv3.BBox.html)
-* Segmentation - a mapping of category to boolean tensor determining if the pixel is part of the mask for the given class: [`%{category_t() => Nx.Tensor.t()}`](http://localhost:55556/ExVision.Segmentation.DeepLabV3_MobileNetV3.html#t:output_t/0)
+* Classifier - a mapping the category into the probability: [`%{category_t() => number()}`](http://localhost:55556/ExVision.Classification.MobileNetV3Small.html#t:output_t/0)
+* Object Detector - a list of bounding boxes: [`list(BBox.t())`](http://localhost:55556/ExVision.ObjectDetection.Ssdlite320_MobileNetv3.BBox.html)
+* Semantic Segmentation - a mapping of category to boolean tensor determining if the pixel is part of the mask for the given class: [`%{category_t() => Nx.Tensor.t()}`](http://localhost:55556/ExVision.SemanticSegmentation.DeepLabV3_MobileNetV3.html#t:output_t/0)
+* Instance Segmentation - a list of bounding boxes with mask: [`list(BBoxWithMask.t())`](http://localhost:55556/ExVision.InstanceSegmentation.MaskRCNN_ResNet50_FPN_V2.html#t:output_t/0)
+* Keypoint Detector - a list of bounding boxes with keypoints: [`list(BBoxWithKeypoints.t())`](http://localhost:55556/ExVision.KeypointDetection.KeypointRCNN_ResNet50_FPN.html#t:output_t/0)
 
 <!-- livebook:{"break_markdown":true} -->
 
@@ -72,7 +76,29 @@ A big point of ExVision over using the models directly has to be documentation a
 Let's put it into practice and run some predictions on a sample image of the cat.
 This code is intentionally using some calls to `dbg/1` macro in order to aid with the understanding of these formats.
 
-However, let's start with loading our test suspect. In the next cell, you can provide your own image that will be used as an example in this notebook. If you don't have anything handy, we're also providing a default image of a cat.
+<!-- livebook:{"break_markdown":true} -->
+
+Let's start with loading our test suspect. For this purpose, we have defined a helper function that will automatically load some default images if you don't specify any.
+
+```elixir
+defmodule ImageHandler do
+  def get(input, default_image) do
+    img_path =
+      case Kino.Input.read(input) do
+        nil ->
+          {:ok, file} = ExVision.Cache.lazy_get(ExVision.Cache, default_image)
+          file
+
+        %{file_ref: image} ->
+          Kino.Input.file_path(image)
+      end
+
+    Image.open!(img_path)
+  end
+end
+```
+
+In the next cell, you can provide your own image that will be used as an example in this notebook. If you don't have anything handy, we're also providing a default image of a cat.
 
 <!-- livebook:{"reevaluate_automatically":true} -->
 
@@ -83,17 +109,7 @@ input = Kino.Input.image("Image to evaluate", format: :jpeg)
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-img_path =
-  case Kino.Input.read(input) do
-    nil ->
-      {:ok, file} = ExVision.Cache.lazy_get(ExVision.Cache, "cat.jpg")
-      file
-
-    %{file_ref: image} ->
-      Kino.Input.file_path(image)
-  end
-
-image = Image.open!(img_path)
+image = ImageHandler.get(input, "cat.jpg")
 ```
 
 ### Image classification
@@ -229,6 +245,8 @@ The objective of instance segmentation is to not only identify objects within an
 
 In ExVision, the output of instance segmentation models includes a bounding box with a label and a score (similar to object detection), and a binary mask for every instance detected in the image.
 
+Extremely low probability detections (with scores lower than 0.1) will be discarded by ExVision, as they are just noise.
+
 ### Code example
 
 In the following example, we will pass an image through the instance segmentation model and examine the individual instance masks recognized by the model.
@@ -261,6 +279,102 @@ predictions
   ])
 end)
 |> Kino.Layout.grid(columns: 2)
+```
+
+## Keypoint detection
+
+In keypoint detection, we're trying to specific keypoints in the image. ExVision returns the output as a list of boudning boxes (similar to object detection) with named keypoints. Each keypoint consists of x, y coordinates and a score which is the model's certainty of that keypoint.
+
+ExVision will discard extremely low probability detections (with scores lower than 0.1), as they are just noise.
+
+<!-- livebook:{"break_markdown":true} -->
+
+The KeypointRCNN_ResNet50_FPN model is commonly used for detecting human body parts in images. To illustrate this, let's begin by importing an image that features people.
+
+```elixir
+image = ImageHandler.get(input, "people.jpg")
+```
+
+#### Code example
+
+In this example, we will draw keypoints for every detection with a high enough score returned by the model, additionally we will draw a bounding box around them.
+
+```elixir
+alias ExVision.Types.BBoxWithKeypoints
+
+# define skeleton pose
+connections = [
+  # face
+  {:nose, :left_eye},
+  {:nose, :right_eye},
+  {:left_eye, :right_eye},
+  {:left_eye, :left_ear},
+  {:right_eye, :right_ear},
+
+  # left arm
+  {:left_wrist, :left_elbow},
+  {:left_elbow, :left_shoulder},
+
+  # right arm
+  {:right_wrist, :right_elbow},
+  {:right_elbow, :right_shoulder},
+
+  # torso
+  {:left_shoulder, :right_shoulder},
+  {:left_shoulder, :left_hip},
+  {:right_shoulder, :right_hip},
+  {:left_hip, :right_hip},
+  {:left_shoulder, :left_ear},
+  {:right_shoulder, :right_ear},
+
+  # left leg
+  {:left_ankle, :left_knee},
+  {:left_knee, :left_hip},
+
+  # right leg
+  {:right_ankle, :right_knee},
+  {:right_knee, :right_hip}
+]
+
+# apply the model
+predictions =
+  image
+  |> then(&KeypointDetector.run(keypoint_detector, &1))
+  # Get most likely predictions from the output
+  |> Enum.filter(fn %BBoxWithKeypoints{score: score} -> score > 0.8 end)
+  |> dbg()
+
+predictions
+|> Enum.reduce(image, fn prediction, image_acc ->
+  # draw keypoints
+  image_acc =
+    prediction.keypoints
+    |> Enum.reduce(image_acc, fn {_key, %{x: x, y: y}}, acc ->
+      Image.Draw.circle!(acc, x, y, 2, color: :red)
+    end)
+
+  # draw skeleton pose
+  image_acc =
+    connections
+    |> Enum.reduce(image_acc, fn {from, to}, acc ->
+      %{x: x1, y: y1} = prediction.keypoints[from]
+      %{x: x2, y: y2} = prediction.keypoints[to]
+
+      Image.Draw.line!(acc, x1, y1, x2, y2, color: :red)
+    end)
+
+  # draw bounding box
+  Image.Draw.rect!(
+    image_acc,
+    prediction.x1,
+    prediction.y1,
+    BBoxWithKeypoints.width(prediction),
+    BBoxWithKeypoints.height(prediction),
+    fill: false,
+    color: :red,
+    stroke_width: 2
+  )
+end)
 ```
 
 ## Next steps
