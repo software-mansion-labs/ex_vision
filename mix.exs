@@ -101,7 +101,8 @@ defmodule ExVision.Mixfile do
           ExVision.SemanticSegmentation.DeepLabV3_MobileNetV3,
           ExVision.InstanceSegmentation.MaskRCNN_ResNet50_FPN_V2,
           ExVision.ObjectDetection.Ssdlite320_MobileNetv3,
-          ExVision.ObjectDetection.FasterRCNN_ResNet50_FPN
+          ExVision.ObjectDetection.FasterRCNN_ResNet50_FPN,
+          ExVision.KeypointDetection.KeypointRCNN_ResNet50_FPN
         ],
         Types: [
           ExVision.Types,
@@ -121,7 +122,8 @@ defmodule ExVision.Mixfile do
         ExVision.Classification,
         ExVision.SemanticSegmentation,
         ExVision.InstanceSegmentation,
-        ExVision.ObjectDetection
+        ExVision.ObjectDetection,
+        ExVision.KeypointDetection
       ],
       formatters: ["html"],
       source_ref: "v#{@version}"
