@@ -4,8 +4,6 @@ defmodule ExVision.Classification.GenericClassifier do
   # Contains a default implementation of post processing for TorchVision classifiers
   # To use: `use ExVision.Classification.GenericClassifier`
 
-  alias ExVision.Utils
-
   alias ExVision.Types.ImageMetadata
 
   @typep output_t() :: %{atom() => number()}
