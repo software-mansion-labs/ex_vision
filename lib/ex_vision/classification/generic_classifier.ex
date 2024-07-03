@@ -15,7 +15,7 @@ defmodule ExVision.Classification.GenericClassifier do
     scores
     |> Nx.backend_transfer()
     |> Nx.flatten()
-    |> Utils.softmax()
+    |> Axon.Activations.softmax(axis: [0])
     |> Nx.to_flat_list()
     |> then(&Enum.zip(categories, &1))
     |> Map.new()

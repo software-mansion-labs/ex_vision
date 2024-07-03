@@ -86,8 +86,8 @@ defmodule ExVision.Utils do
 
   defp ensure_grad_3(tensor) do
     tensor
-    |> Nx.shape()
-    |> tuple_size()
+
+    Nx.rank()
     |> case do
       3 -> [tensor]
       4 -> tensor |> Nx.to_batched(1) |> Stream.map(&Nx.squeeze(&1, axes: [0])) |> Enum.to_list()
@@ -147,10 +147,6 @@ defmodule ExVision.Utils do
     {_inputs, outputs} = Ortex.Native.show_session(r)
 
     Enum.map(outputs, fn {name, _type, _shape} -> name end)
-  end
-
-  defn softmax(x) do
-    Nx.divide(Nx.exp(x), Nx.sum(Nx.exp(x)))
   end
 
   @spec batched_run(atom(), ExVision.Model.input_t()) :: ExVision.Model.output_t()

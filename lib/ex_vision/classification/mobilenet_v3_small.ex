@@ -15,8 +15,8 @@ defmodule ExVision.Classification.MobileNetV3Small do
     image
     |> ExVision.Utils.resize({224, 224})
     |> NxImage.normalize(
-      Nx.tensor([0.485, 0.456, 0.406]),
-      Nx.tensor([0.229, 0.224, 0.225]),
+      Nx.f32([0.485, 0.456, 0.406]),
+      Nx.f32([0.229, 0.224, 0.225]),
       channels: :first
     )
   end
