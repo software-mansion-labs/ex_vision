@@ -1,7 +1,6 @@
 defmodule ExVision.Utils do
   @moduledoc false
 
-  import Nx.Defn
   require Nx
   require Image
   alias ExVision.Types
