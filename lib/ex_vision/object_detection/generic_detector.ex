@@ -31,7 +31,7 @@ defmodule ExVision.ObjectDetection.GenericDetector do
     scale_x = w / 224
     scale_y = h / 224
 
-    bboxes = process_bbox(bboxes, Nx.tensor([scale_x, scale_y, scale_x, scale_y]))
+    bboxes = process_bbox(bboxes, Nx.f32([scale_x, scale_y, scale_x, scale_y]))
 
     scores = unbatch(scores)
     labels = unbatch(labels)
