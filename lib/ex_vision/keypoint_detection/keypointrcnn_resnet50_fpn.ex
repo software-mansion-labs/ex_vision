@@ -6,6 +6,8 @@ defmodule ExVision.KeypointDetection.KeypointRCNN_ResNet50_FPN do
     model: "keypointrcnn_resnet50_fpn_keypoint_detector.onnx",
     categories: "priv/categories/no_person_or_person.json"
 
+  import ExVision.Utils
+
   require Logger
 
   alias ExVision.Types.BBoxWithKeypoints
@@ -67,26 +69,14 @@ defmodule ExVision.KeypointDetection.KeypointRCNN_ResNet50_FPN do
     scale_x = w / 224
     scale_y = h / 224
 
-    bboxes =
-      bboxes
-      |> Nx.squeeze(axes: [0])
-      |> Nx.multiply(Nx.tensor([scale_x, scale_y, scale_x, scale_y]))
-      |> Nx.round()
-      |> Nx.as_type(:s64)
-      |> Nx.to_list()
+    bboxes = scale_and_listify_bbox(bboxes, Nx.f32([scale_x, scale_y, scale_x, scale_y]))
 
-    scores = scores |> Nx.squeeze(axes: [0]) |> Nx.to_list()
-    labels = labels |> Nx.squeeze(axes: [0]) |> Nx.to_list()
+    scores = squeeze_and_listify(scores)
+    labels = squeeze_and_listify(labels)
 
-    keypoints_list =
-      keypoints_list
-      |> Nx.squeeze(axes: [0])
-      |> Nx.multiply(Nx.tensor([scale_x, scale_y, 1]))
-      |> Nx.round()
-      |> Nx.as_type(:s64)
-      |> Nx.to_list()
+    keypoints_list = scale_and_listify_bbox(keypoints_list, Nx.tensor([scale_x, scale_y, 1]))
 
-    keypoints_scores_list = keypoints_scores_list |> Nx.squeeze(axes: [0]) |> Nx.to_list()
+    keypoints_scores_list = squeeze_and_listify(keypoints_scores_list)
 
     [bboxes, scores, labels, keypoints_list, keypoints_scores_list]
     |> Enum.zip()

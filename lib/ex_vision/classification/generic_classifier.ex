@@ -4,8 +4,6 @@ defmodule ExVision.Classification.GenericClassifier do
   # Contains a default implementation of post processing for TorchVision classifiers
   # To use: `use ExVision.Classification.GenericClassifier`
 
-  alias ExVision.Utils
-
   alias ExVision.Types.ImageMetadata
 
   @typep output_t() :: %{atom() => number()}
@@ -15,7 +13,7 @@ defmodule ExVision.Classification.GenericClassifier do
     scores
     |> Nx.backend_transfer()
     |> Nx.flatten()
-    |> Utils.softmax()
+    |> Axon.Activations.softmax(axis: [0])
     |> Nx.to_flat_list()
     |> then(&Enum.zip(categories, &1))
     |> Map.new()

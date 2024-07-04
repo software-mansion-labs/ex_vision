@@ -1,7 +1,6 @@
 defmodule ExVision.Utils do
   @moduledoc false
 
-  import Nx.Defn
   require Nx
   require Image
   alias ExVision.Types
@@ -86,8 +85,7 @@ defmodule ExVision.Utils do
 
   defp ensure_grad_3(tensor) do
     tensor
-    |> Nx.shape()
-    |> tuple_size()
+    |> Nx.rank()
     |> case do
       3 -> [tensor]
       4 -> tensor |> Nx.to_batched(1) |> Stream.map(&Nx.squeeze(&1, axes: [0])) |> Enum.to_list()
@@ -149,10 +147,6 @@ defmodule ExVision.Utils do
     Enum.map(outputs, fn {name, _type, _shape} -> name end)
   end
 
-  defn softmax(x) do
-    Nx.divide(Nx.exp(x), Nx.sum(Nx.exp(x)))
-  end
-
   @spec batched_run(atom(), ExVision.Model.input_t()) :: ExVision.Model.output_t()
   def batched_run(process_name, input) when is_list(input) do
     Nx.Serving.batched_run(process_name, input)
@@ -160,5 +154,20 @@ defmodule ExVision.Utils do
 
   def batched_run(process_name, input) do
     process_name |> batched_run([input]) |> hd()
+  end
+
+  @spec scale_and_listify_bbox(Nx.Tensor.t(), Nx.Tensor.t()) :: [integer()]
+  def scale_and_listify_bbox(bbox, scales) do
+    bbox
+    |> Nx.squeeze(axes: [0])
+    |> Nx.multiply(scales)
+    |> Nx.round()
+    |> Nx.as_type(:s64)
+    |> Nx.to_list()
+  end
+
+  @spec squeeze_and_listify(Nx.Tensor.t()) :: [number()]
+  def squeeze_and_listify(batched_value) do
+    batched_value |> Nx.squeeze(axes: [0]) |> Nx.to_list()
   end
 end

@@ -6,6 +6,8 @@ defmodule ExVision.InstanceSegmentation.MaskRCNN_ResNet50_FPN_V2 do
     model: "maskrcnn_resnet50_fpn_v2_instance_segmentation.onnx",
     categories: "priv/categories/coco_categories.json"
 
+  import ExVision.Utils
+
   require Logger
 
   alias ExVision.Types.BBoxWithMask
@@ -46,16 +48,10 @@ defmodule ExVision.InstanceSegmentation.MaskRCNN_ResNet50_FPN_V2 do
     scale_x = w / 224
     scale_y = h / 224
 
-    bboxes =
-      bboxes
-      |> Nx.squeeze(axes: [0])
-      |> Nx.multiply(Nx.tensor([scale_x, scale_y, scale_x, scale_y]))
-      |> Nx.round()
-      |> Nx.as_type(:s64)
-      |> Nx.to_list()
+    bboxes = scale_and_listify_bbox(bboxes, Nx.f32([scale_x, scale_y, scale_x, scale_y]))
 
-    scores = scores |> Nx.squeeze(axes: [0]) |> Nx.to_list()
-    labels = labels |> Nx.squeeze(axes: [0]) |> Nx.to_list()
+    scores = squeeze_and_listify(scores)
+    labels = squeeze_and_listify(labels)
 
     masks =
       masks

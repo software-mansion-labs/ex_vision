@@ -15,8 +15,8 @@ defmodule ExVision.Classification.EfficientNet_V2_S do
     image
     |> ExVision.Utils.resize({384, 384})
     |> NxImage.normalize(
-      Nx.tensor([0.485, 0.456, 0.406]),
-      Nx.tensor([0.229, 0.224, 0.225]),
+      Nx.f32([0.485, 0.456, 0.406]),
+      Nx.f32([0.229, 0.224, 0.225]),
       channels: :first
     )
   end
