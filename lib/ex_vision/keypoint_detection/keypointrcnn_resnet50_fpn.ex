@@ -6,9 +6,9 @@ defmodule ExVision.KeypointDetection.KeypointRCNN_ResNet50_FPN do
     model: "keypointrcnn_resnet50_fpn_keypoint_detector.onnx",
     categories: "priv/categories/no_person_or_person.json"
 
-  require Logger
-
   import ExVision.Utils
+
+  require Logger
 
   alias ExVision.Types.BBoxWithKeypoints
 

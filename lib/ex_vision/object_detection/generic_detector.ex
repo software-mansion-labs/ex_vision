@@ -4,9 +4,9 @@ defmodule ExVision.ObjectDetection.GenericDetector do
   # Contains a default implementation of pre and post processing for TorchVision detectors
   # To use: `use ExVision.ObjectDetection.GenericDetector`
 
-  require Logger
-
   import ExVision.Utils
+
+  require Logger
 
   alias ExVision.Types.{BBox, ImageMetadata}
 

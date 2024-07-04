@@ -6,9 +6,9 @@ defmodule ExVision.InstanceSegmentation.MaskRCNN_ResNet50_FPN_V2 do
     model: "maskrcnn_resnet50_fpn_v2_instance_segmentation.onnx",
     categories: "priv/categories/coco_categories.json"
 
-  require Logger
-
   import ExVision.Utils
+
+  require Logger
 
   alias ExVision.Types.BBoxWithMask
 
