@@ -48,10 +48,10 @@ defmodule ExVision.InstanceSegmentation.MaskRCNN_ResNet50_FPN_V2 do
     scale_x = w / 224
     scale_y = h / 224
 
-    bboxes = process_bbox(bboxes, Nx.f32([scale_x, scale_y, scale_x, scale_y]))
+    bboxes = scale_and_listify_bbox(bboxes, Nx.f32([scale_x, scale_y, scale_x, scale_y]))
 
-    scores = unbatch(scores)
-    labels = unbatch(labels)
+    scores = squeeze_and_listify(scores)
+    labels = squeeze_and_listify(labels)
 
     masks =
       masks

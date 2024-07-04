@@ -156,8 +156,8 @@ defmodule ExVision.Utils do
     process_name |> batched_run([input]) |> hd()
   end
 
-  @spec process_bbox(Nx.Tensor.t(), Nx.Tensor.t()) :: [integer()]
-  def process_bbox(bbox, scales) do
+  @spec scale_and_listify_bbox(Nx.Tensor.t(), Nx.Tensor.t()) :: [integer()]
+  def scale_and_listify_bbox(bbox, scales) do
     bbox
     |> Nx.squeeze(axes: [0])
     |> Nx.multiply(scales)
@@ -166,8 +166,8 @@ defmodule ExVision.Utils do
     |> Nx.to_list()
   end
 
-  @spec unbatch(Nx.Tensor.t()) :: [number()]
-  def unbatch(batched_value) do
+  @spec squeeze_and_listify(Nx.Tensor.t()) :: [number()]
+  def squeeze_and_listify(batched_value) do
     batched_value |> Nx.squeeze(axes: [0]) |> Nx.to_list()
   end
 end
