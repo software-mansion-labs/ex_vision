@@ -8,6 +8,8 @@ defmodule ExVision.KeypointDetection.KeypointRCNN_ResNet50_FPN do
 
   require Logger
 
+  import ExVision.Utils
+
   alias ExVision.Types.BBoxWithKeypoints
 
   @typep output_t() :: [BBoxWithKeypoints.t()]
@@ -67,26 +69,14 @@ defmodule ExVision.KeypointDetection.KeypointRCNN_ResNet50_FPN do
     scale_x = w / 224
     scale_y = h / 224
 
-    bboxes =
-      bboxes
-      |> Nx.squeeze(axes: [0])
-      |> Nx.multiply(Nx.tensor([scale_x, scale_y, scale_x, scale_y]))
-      |> Nx.round()
-      |> Nx.as_type(:s64)
-      |> Nx.to_list()
+    bboxes = process_bbox(bboxes, Nx.tensor([scale_x, scale_y, scale_x, scale_y]))
 
-    scores = scores |> Nx.squeeze(axes: [0]) |> Nx.to_list()
-    labels = labels |> Nx.squeeze(axes: [0]) |> Nx.to_list()
+    scores = unbatch(scores)
+    labels = unbatch(labels)
 
-    keypoints_list =
-      keypoints_list
-      |> Nx.squeeze(axes: [0])
-      |> Nx.multiply(Nx.tensor([scale_x, scale_y, 1]))
-      |> Nx.round()
-      |> Nx.as_type(:s64)
-      |> Nx.to_list()
+    keypoints_list = process_bbox(keypoints_list, Nx.tensor([scale_x, scale_y, 1]))
 
-    keypoints_scores_list = keypoints_scores_list |> Nx.squeeze(axes: [0]) |> Nx.to_list()
+    keypoints_scores_list = unbatch(keypoints_scores_list)
 
     [bboxes, scores, labels, keypoints_list, keypoints_scores_list]
     |> Enum.zip()

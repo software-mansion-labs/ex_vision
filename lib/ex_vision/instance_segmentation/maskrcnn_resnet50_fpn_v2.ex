@@ -8,6 +8,8 @@ defmodule ExVision.InstanceSegmentation.MaskRCNN_ResNet50_FPN_V2 do
 
   require Logger
 
+  import ExVision.Utils
+
   alias ExVision.Types.BBoxWithMask
 
   @type output_t() :: [BBoxWithMask.t()]
@@ -46,16 +48,10 @@ defmodule ExVision.InstanceSegmentation.MaskRCNN_ResNet50_FPN_V2 do
     scale_x = w / 224
     scale_y = h / 224
 
-    bboxes =
-      bboxes
-      |> Nx.squeeze(axes: [0])
-      |> Nx.multiply(Nx.tensor([scale_x, scale_y, scale_x, scale_y]))
-      |> Nx.round()
-      |> Nx.as_type(:s64)
-      |> Nx.to_list()
+    bboxes = process_bbox(bboxes, Nx.tensor([scale_x, scale_y, scale_x, scale_y]))
 
-    scores = scores |> Nx.squeeze(axes: [0]) |> Nx.to_list()
-    labels = labels |> Nx.squeeze(axes: [0]) |> Nx.to_list()
+    scores = unbatch(scores)
+    labels = unbatch(labels)
 
     masks =
       masks

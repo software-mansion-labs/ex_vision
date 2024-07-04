@@ -6,6 +6,8 @@ defmodule ExVision.ObjectDetection.GenericDetector do
 
   require Logger
 
+  import ExVision.Utils
+
   alias ExVision.Types.{BBox, ImageMetadata}
 
   @typep output_t() :: [BBox.t()]
@@ -29,16 +31,10 @@ defmodule ExVision.ObjectDetection.GenericDetector do
     scale_x = w / 224
     scale_y = h / 224
 
-    bboxes =
-      bboxes
-      |> Nx.squeeze(axes: [0])
-      |> Nx.multiply(Nx.tensor([scale_x, scale_y, scale_x, scale_y]))
-      |> Nx.round()
-      |> Nx.as_type(:s64)
-      |> Nx.to_list()
+    bboxes = process_bbox(bboxes, Nx.tensor([scale_x, scale_y, scale_x, scale_y]))
 
-    scores = scores |> Nx.squeeze(axes: [0]) |> Nx.to_list()
-    labels = labels |> Nx.squeeze(axes: [0]) |> Nx.to_list()
+    scores = unbatch(scores)
+    labels = unbatch(labels)
 
     [bboxes, scores, labels]
     |> Enum.zip()

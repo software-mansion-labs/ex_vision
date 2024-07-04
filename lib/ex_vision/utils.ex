@@ -155,4 +155,17 @@ defmodule ExVision.Utils do
   def batched_run(process_name, input) do
     process_name |> batched_run([input]) |> hd()
   end
+
+  defp process_bbox(bbox, scales, axes \\ [0]) do
+    bbox
+    |> Nx.squeeze(axes: axes)
+    |> Nx.multiply(scales)
+    |> Nx.round()
+    |> Nx.as_type(:s64)
+    |> Nx.to_list()
+  end
+
+  defp unbatch(batched_value, axes \\ [0]) do
+    batched_value |> Nx.squeeze(axes: axes) |> Nx.to_list()
+  end
 end
