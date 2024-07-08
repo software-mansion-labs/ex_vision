@@ -36,7 +36,7 @@ defmodule ExVision.Types.BBoxWithMask do
           x2: number(),
           label: label_t,
           score: number(),
-          mask: Nx.tensor()
+          mask: Nx.Tensor.t()
         }
 
   @typedoc """

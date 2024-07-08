@@ -107,6 +107,8 @@ defmodule ExVision.Mixfile do
         Types: [
           ExVision.Types,
           ExVision.Types.BBox,
+          ExVision.Types.BBoxWithKeypoints,
+          ExVision.Types.BBoxWithMask,
           ExVision.Types.ImageMetadata
         ],
         "Protocols and Behaviours": [
