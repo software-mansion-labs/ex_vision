@@ -42,14 +42,14 @@ They are therefore compatible with process workflow.
 You can start a model's process:
 
 ```elixir
-{:ok, pid} = MobileNetV3.start_link(name: MyModel)
+{:ok, pid} = MobileNetV3Small.start_link(name: MyModel)
 ```
 
 or start it under the supervision tree
 
 ```elixir
 {:ok, _supervisor_pid} = Supervisor.start_link([
-  {MobileNetV3, name: MyModel}
+  {MobileNetV3Small, name: MyModel}
 ], strategy: :one_for_one)
 ```
 
