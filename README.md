@@ -13,16 +13,16 @@ ExVision models are powered by [Ortex](https://www.github.com/elixir-nx/ortex).
 In order to use the model, you need to first load it
 
 ```elixir
-alias ExVision.Classification.MobileNetV3
+alias ExVision.Classification.MobileNetV3Small
 
-model = MobileNetV3.load() #=> %MobileNetV3{}
+model = MobileNetV3Small.load() #=> %MobileNetV3{}
 ```
 
 After that, the model is available for inference.
 ExVision will take care of all necessary input transformations and covert output to a format that makes sense.
 
 ```elixir
-MobileNetV3.run(model, "example/files/cat.jpg") #=> %{cat: 0.98, dog: 0.01, car: 0.00, ...}
+MobileNetV3Small.run(model, "example/files/cat.jpg") #=> %{cat: 0.98, dog: 0.01, car: 0.00, ...}
 ```
 
 ExVision is also capable of accepting tensors and images on input:
@@ -30,8 +30,8 @@ ExVision is also capable of accepting tensors and images on input:
 ```elixir
 cat = Image.open!("example/files/cat.jpg")
 {:ok, cat_tensor} = Image.to_nx(cat)
-MobileNetV3.run(model, cat) #=> %{cat: 0.98, dog: 0.01, car: 0.00, ...}
-MobileNetV3.run(model, cat_tensor) #=> %{cat: 0.98, dog: 0.01, car: 0.00, ...}
+MobileNetV3Small.run(model, cat) #=> %{cat: 0.98, dog: 0.01, car: 0.00, ...}
+MobileNetV3Small.run(model, cat_tensor) #=> %{cat: 0.98, dog: 0.01, car: 0.00, ...}
 ```
 
 ### Usage in process workflow
@@ -56,7 +56,7 @@ or start it under the supervision tree
 After starting, it's immediatelly available for inference using `batched_run/2` function.
 
 ```elixir
-MobileNetV3.batched_run(MyModel, cat) #=> %{cat: 0.98, dog: 0.01, car: 0.00, ...}
+MobileNetV3Small.batched_run(MyModel, cat) #=> %{cat: 0.98, dog: 0.01, car: 0.00, ...}
 ```
 
 ## Installation
