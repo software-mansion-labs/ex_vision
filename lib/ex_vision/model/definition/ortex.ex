@@ -45,7 +45,14 @@ defmodule ExVision.Model.Definition.Ortex do
 
   defmacrop get_client_preprocessing(module) do
     quote do
+      # input_preprocessing = fn input ->
       fn input ->
+        Logger.info("IO.inspect(input)")
+        # images = case input do
+        #   {_input, sth} -> ExVision.Utils.load_image(_input)
+        #   _input -> ExVision.Utils.load_image(_input)
+        # end
+
         images = ExVision.Utils.load_image(input)
 
         metadata =
@@ -56,14 +63,22 @@ defmodule ExVision.Model.Definition.Ortex do
             }
           )
 
+        Logger.info(images)
         batch =
           images
           |> Enum.zip(metadata)
           |> Enum.map(fn {image, metadata} -> unquote(module).preprocessing(image, metadata) end)
           |> Nx.Batch.stack()
 
+        # batch = batch |> Nx.Batch.stack()
+        Logger.info(batch)
         {batch, metadata}
       end
+
+      # fn
+      #   {input, extra_fields} -> {unquote(input_preprocessing)(input), extra_fields}
+      #   {input} -> unquote(input_preprocessing)(input)
+      # end
     end
   end
 

@@ -1,4 +1,4 @@
-defmodule ExVision.SemanticSegmentation.DeepLabV3_MobileNetV3 do
+defmodule ExVision.StyleTransfer.Candy do
     @moduledoc """
     An instance segmentation model with a ResNet-50-FPN backbone. Exported from torchvision.
     """
@@ -30,6 +30,9 @@ defmodule ExVision.SemanticSegmentation.DeepLabV3_MobileNetV3 do
 
     @impl true
     def preprocessing(img, _metdata) do
+      # {ExVision.Utils.resize(img, {640, 480}), Nx.tensor([1.0,1.0,1.0,1.0], type: :f32)}
+      Logger.info(ExVision.Utils.resize(img, {640, 480}))
+
       ExVision.Utils.resize(img, {640, 480}) |> Nx.divide(255.0)
     end
 
@@ -46,5 +49,9 @@ defmodule ExVision.SemanticSegmentation.DeepLabV3_MobileNetV3 do
 
       stylized_frame
     end
-
+    defp clamp(tensor) do
+      tensor
+      |> Nx.max(0.0)
+      |> Nx.min(255.0)
+    end
   end

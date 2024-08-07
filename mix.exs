@@ -99,6 +99,7 @@ defmodule ExVision.Mixfile do
           ExVision.Classification.EfficientNet_V2_L,
           ExVision.Classification.SqueezeNet1_1,
           ExVision.SemanticSegmentation.DeepLabV3_MobileNetV3,
+          ExVision.StyleTransfer.Candy,
           ExVision.InstanceSegmentation.MaskRCNN_ResNet50_FPN_V2,
           ExVision.ObjectDetection.Ssdlite320_MobileNetv3,
           ExVision.ObjectDetection.FasterRCNN_ResNet50_FPN,
@@ -123,6 +124,7 @@ defmodule ExVision.Mixfile do
         ExVision.Types,
         ExVision.Classification,
         ExVision.SemanticSegmentation,
+        ExVision.StyleTransfer,
         ExVision.InstanceSegmentation,
         ExVision.ObjectDetection,
         ExVision.KeypointDetection
