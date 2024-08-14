@@ -23,7 +23,7 @@ for {module, opts} <- Configuration.configuration() do
     require Logger
     @type output_t() :: [Nx.Tensor.t()]
 
-    use ExVision.Model.Definition.Ortex, model: unquote(opts[:model]), categories: "priv/categories/coco_categories.json"
+    use ExVision.Model.Definition.Ortex, model: unquote(opts[:model])
 
     @impl true
     def load(options \\ []) do
