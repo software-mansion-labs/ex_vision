@@ -1,16 +1,16 @@
 defmodule Configuration do
   @low_resolution {400,300}
-  @high_resolution {400,300}
+  @high_resolution {640,480}
   def configuration do
     %{
-      ExVision.StyleTransfer.Candy  => [model: "candy.onnx", resolution: @high_resolution, categories: "priv/categories/coco_categories.json"],
-      ExVision.StyleTransfer.CandyFast  => [model: "candy_fast.onnx", resolution: @low_resolution, categories: "priv/categories/coco_categories.json"],
-      ExVision.StyleTransfer.Princess  => [model: "princess.onnx", resolution: @high_resolution, categories: "priv/categories/coco_categories.json"],
-      ExVision.StyleTransfer.PrincessFast  => [model: "princess_fast.onnx", resolution: @low_resolution, categories: "priv/categories/coco_categories.json"],
-      ExVision.StyleTransfer.Udnie  => [model: "udnie.onnx", resolution: @high_resolution, categories: "priv/categories/coco_categories.json"],
-      ExVision.StyleTransfer.UdnieFast  => [model: "udnie_fast.onnx", resolution: @low_resolution, categories: "priv/categories/coco_categories.json"],
-      ExVision.StyleTransfer.Mosaic  => [model: "mosaic.onnx", resolution: @high_resolution, categories: "priv/categories/coco_categories.json"],
-      ExVision.StyleTransfer.MosaicFast  => [model: "mosaic_fast.onnx", resolution: @low_resolution, categories: "priv/categories/coco_categories.json"],
+      ExVision.StyleTransfer.Candy  => [model: "candy.onnx", resolution: @high_resolution], #fix model
+      ExVision.StyleTransfer.CandyFast  => [model: "candy_fast.onnx", resolution: @low_resolution],
+      ExVision.StyleTransfer.Princess  => [model: "princess.onnx", resolution: @high_resolution],
+      ExVision.StyleTransfer.PrincessFast  => [model: "princess_fast.onnx", resolution: @low_resolution],
+      ExVision.StyleTransfer.Udnie  => [model: "udnie.onnx", resolution: @high_resolution],
+      ExVision.StyleTransfer.UdnieFast  => [model: "udnie_fast.onnx", resolution: @low_resolution],
+      ExVision.StyleTransfer.Mosaic  => [model: "mosaic.onnx", resolution: @high_resolution],
+      ExVision.StyleTransfer.MosaicFast  => [model: "mosaic_fast.onnx", resolution: @low_resolution],
     }
   end
 end
