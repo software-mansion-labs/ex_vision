@@ -3,7 +3,7 @@ defmodule Configuration do
   @high_resolution {640,480}
   def configuration do
     %{
-      ExVision.StyleTransfer.Candy  => [model: "candy.onnx", resolution: @high_resolution], #fix model
+      ExVision.StyleTransfer.Candy  => [model: "candy.onnx", resolution: @high_resolution],
       ExVision.StyleTransfer.CandyFast  => [model: "candy_fast.onnx", resolution: @low_resolution],
       ExVision.StyleTransfer.Princess  => [model: "princess.onnx", resolution: @high_resolution],
       ExVision.StyleTransfer.PrincessFast  => [model: "princess_fast.onnx", resolution: @low_resolution],
