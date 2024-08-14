@@ -31,7 +31,6 @@ defmodule ExVision.Model.Definition do
       ])
 
     quote do
-      #todo fix
       unless is_nil(unquote(options[:categories])) do
         use ExVision.Model.Definition.Parts.WithCategories, unquote(options)
       end

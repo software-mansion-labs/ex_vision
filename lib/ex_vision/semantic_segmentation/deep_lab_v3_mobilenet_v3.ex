@@ -1,50 +1,32 @@
 defmodule ExVision.SemanticSegmentation.DeepLabV3_MobileNetV3 do
-    @moduledoc """
-    An instance segmentation model with a ResNet-50-FPN backbone. Exported from torchvision.
-    """
-    use ExVision.Model.Definition.Ortex,
-      # model: "udnie.onnx",
-      model: "udnie.onnx",
-      categories: "priv/categories/coco_categories.json"
+  @moduledoc """
+  A semantic segmentation model for MobileNetV3 Backbone. Exported from torchvision.
+  """
+  use ExVision.Model.Definition.Ortex,
+    model: "deeplab_v3_mobilenetv3_segmentation.onnx",
+    categories: "priv/categories/coco_with_voc_labels_categories.json"
 
-    import ExVision.Utils
+  @type output_t() :: %{category_t() => Nx.Tensor.t()}
 
-    require Logger
-
-    alias ExVision.Types.BBoxWithMask
-
-    @type output_t() :: [BBoxWithMask.t()]
-
-    @impl true
-    def load(options \\ []) do
-      if Keyword.has_key?(options, :batch_size) do
-        Logger.warning(
-          "`:max_batch_size` was given, but this model can only process batch of size 1. Overriding"
-        )
-      end
-
-      options
-      |> Keyword.put(:batch_size, 1)
-      |> default_model_load()
-    end
-
-    @impl true
-    def preprocessing(img, _metdata) do
-      ExVision.Utils.resize(img, {640, 480}) |> Nx.divide(255.0)
-    end
-
-    @impl true
-    def postprocessing(
-          stylized_frame,
-          metadata
-        ) do
-      categories = categories()
-
-      {h, w} = metadata.original_size
-      scale_x = w / 640
-      scale_y = h / 480
-
-      stylized_frame
-    end
-
+  @impl true
+  def preprocessing(img, _metdata) do
+    ExVision.Utils.resize(img, {224, 224})
   end
+
+  @impl true
+  def postprocessing(%{"output" => out}, metadata) do
+    cls_per_pixel =
+      out
+      |> Nx.backend_transfer()
+      |> NxImage.resize(metadata.original_size, channels: :first)
+      |> Nx.squeeze()
+      |> Axon.Activations.softmax(axis: [0])
+      |> Nx.argmax(axis: 0)
+
+    categories()
+    |> Enum.with_index()
+    |> Map.new(fn {category, i} ->
+      {category, cls_per_pixel |> Nx.equal(i)}
+    end)
+  end
+end

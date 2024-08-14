@@ -17,6 +17,9 @@ end
 
 for {module, opts} <- Configuration.configuration() do
   defmodule module do
+    @moduledoc """
+    #{module} is a custom style transfer model optimised for devices with low computational capabilities and CPU inference.
+    """
     require Logger
     @type output_t() :: [Nx.Tensor.t()]
 

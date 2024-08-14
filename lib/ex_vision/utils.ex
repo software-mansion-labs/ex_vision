@@ -3,7 +3,6 @@ defmodule ExVision.Utils do
 
   require Nx
   require Image
-  require Logger
   alias ExVision.Types
 
   @type channel_spec_t() :: :first | :last
@@ -150,13 +149,10 @@ defmodule ExVision.Utils do
 
   @spec batched_run(atom(), ExVision.Model.input_t()) :: ExVision.Model.output_t()
   def batched_run(process_name, input) when is_list(input) do
-    Logger.info("batched_run(process_name, input) when is_list(input) do")
-    # Nx.Serving.batched_run(process_name, {input, Nx.tensor([1,1,1,1])})
     Nx.Serving.batched_run(process_name, input)
   end
 
   def batched_run(process_name, input) do
-    Logger.info("batched_run(process_name, input) do")
     process_name |> batched_run([input]) |> hd()
   end
 
