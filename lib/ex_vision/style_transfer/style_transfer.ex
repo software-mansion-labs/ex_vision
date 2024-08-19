@@ -48,9 +48,10 @@ for {module, opts} <- Configuration.configuration() do
           stylized_frame,
           metadata
         ) do
-
-      stylized_frame = stylized_frame["55"]
-      NxImage.resize(stylized_frame, metadata.original_size, channels: :first)
+      {h,w} = unquote(opts[:resolution])
+      stylized_frame["55"]
+        |> Nx.reshape({3, h, w}, names: [:channel, :height, :width])
+        |> NxImage.resize(metadata.original_size, channels: :first)
     end
   end
 end
