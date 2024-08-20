@@ -42,6 +42,12 @@ defmodule ExVision.TestUtils do
     end
   end
 
+  defmacro assert_tensors_equal(a, b, delta \\ @default_delta) do
+    quote do
+      assert Nx.all_close(unquote(a), unquote(b)) |> Nx.reduce_min() |> Nx.to_number() == 1
+    end
+  end
+
   defmacro __using__(_opts) do
     quote do
       import ExVision.TestUtils, only: :macros
