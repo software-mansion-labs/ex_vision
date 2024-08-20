@@ -23,6 +23,10 @@ for {module, opts} <- Configuration.configuration() do
     #{module} is a custom style transfer model optimised for devices with low computational capabilities and CPU inference.
     """
     require Logger
+
+    @typedoc """
+    A type consisting of output tesnor (stylized image tensor) from style transfer models of shape {#{Enum.join(Tuple.to_list(opts[:resolution]) ++ [3], ", ")}}.
+    """
     @type output_t() :: Nx.Tensor.t()
 
     use ExVision.Model.Definition.Ortex, model: unquote(opts[:model])
