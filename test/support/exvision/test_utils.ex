@@ -44,7 +44,10 @@ defmodule ExVision.TestUtils do
 
   defmacro assert_tensors_equal(a, b, delta \\ @default_delta) do
     quote do
-      assert Nx.all_close(unquote(a), unquote(b), atol: unquote(delta)) |> Nx.reduce_min() |> Nx.to_number() == 1
+      assert unquote(a)
+             |> Nx.all_close(unquote(b), atol: unquote(delta))
+             |> Nx.reduce_min()
+             |> Nx.to_number() == 1
     end
   end
 

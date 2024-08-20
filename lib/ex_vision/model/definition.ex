@@ -25,10 +25,10 @@ defmodule ExVision.Model.Definition do
     Application.ensure_all_started(:req)
 
     options =
-      Keyword.validate!(options, [
+      Keyword.validate!(options,
         categories: nil,
         name: module_to_name(__CALLER__.module)
-      ])
+      )
 
     quote do
       # conditional defintion based on whether `categories` option is present has to be moved inside __using__ macro

@@ -5,6 +5,7 @@ defmodule ExVision.Model.Definition.Parts.WithCategories do
 
   defmacro __using__(options) do
     options = Keyword.validate!(options, [:name, :categories])
+
     unless is_nil(options |> Keyword.fetch!(:categories)) do
       categories = options |> Keyword.fetch!(:categories) |> Utils.load_categories()
       spec = categories |> Enum.uniq() |> Bunch.Typespec.enum_to_alternative()
