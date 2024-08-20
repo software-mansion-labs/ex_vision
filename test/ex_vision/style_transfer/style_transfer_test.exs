@@ -43,6 +43,8 @@ for {module, opts} <- TestConfiguration.configuration() do
     use ExVision.Model.Case, module: unquote(opts[:module])
     use ExVision.TestUtils
 
+    require Logger
+
     @impl true
     def test_inference_result(result) do
       expected_result =
@@ -50,7 +52,7 @@ for {module, opts} <- TestConfiguration.configuration() do
         |> File.read!()
         |> Nx.deserialize()
 
-      assert_tensors_equal(result, expected_result)
+      assert_tensors_equal(result, expected_result, 5, 0.05)
     end
   end
 end

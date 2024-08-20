@@ -66,9 +66,8 @@ for {module, opts} <- Configuration.configuration() do
 
       stylized_frame["55"]
       |> Nx.reshape({3, h, w}, names: [:channel, :height, :width])
-      |> NxImage.resize(metadata.original_size, channels: :first)
-      |> Nx.max(0.0)
-      |> Nx.min(255.0)
+      |> NxImage.resize(metadata.original_size, channels: :first, method: :bilinear)
+      |> Nx.clip(0.0, 255.0)
       |> Nx.as_type(:u8)
       |> Nx.transpose(axes: [1, 2, 0])
     end
