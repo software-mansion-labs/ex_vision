@@ -1,4 +1,6 @@
 defmodule Configuration do
+  @moduledoc false
+
   @low_resolution {400,300}
   @high_resolution {640,480}
   def configuration do
@@ -21,7 +23,7 @@ for {module, opts} <- Configuration.configuration() do
     #{module} is a custom style transfer model optimised for devices with low computational capabilities and CPU inference.
     """
     require Logger
-    @type output_t() :: [Nx.Tensor.t()]
+    @type output_t() :: Nx.Tensor.t()
 
     use ExVision.Model.Definition.Ortex, model: unquote(opts[:model])
 
@@ -40,7 +42,7 @@ for {module, opts} <- Configuration.configuration() do
 
     @impl true
     def preprocessing(img, _metdata) do
-      ExVision.Utils.resize(img, unquote(opts[:resolution])) |> Nx.divide(255.0)
+      img |> ExVision.Utils.resize(unquote(opts[:resolution])) |> Nx.divide(255.0)
     end
 
     @impl true
@@ -52,6 +54,10 @@ for {module, opts} <- Configuration.configuration() do
       stylized_frame["55"]
         |> Nx.reshape({3, h, w}, names: [:channel, :height, :width])
         |> NxImage.resize(metadata.original_size, channels: :first)
+        |> Nx.max(0.0)
+        |> Nx.min(255.0)
+        |> Nx.as_type(:u8)
+        |> Nx.transpose(axes: [1, 2, 0])
     end
   end
 end
