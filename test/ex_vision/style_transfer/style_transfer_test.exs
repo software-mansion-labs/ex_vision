@@ -43,8 +43,6 @@ for {module, opts} <- TestConfiguration.configuration() do
     use ExVision.Model.Case, module: unquote(opts[:module])
     use ExVision.TestUtils
 
-    require Logger
-
     @impl true
     def test_inference_result(result) do
       expected_result =
