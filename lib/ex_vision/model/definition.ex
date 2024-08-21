@@ -25,15 +25,15 @@ defmodule ExVision.Model.Definition do
     Application.ensure_all_started(:req)
 
     options =
-      Keyword.validate!(options, [
-        :categories,
+      Keyword.validate!(options,
+        categories: nil,
         name: module_to_name(__CALLER__.module)
-      ])
+      )
 
     quote do
-      unless is_nil(unquote(options[:categories])) do
-        use ExVision.Model.Definition.Parts.WithCategories, unquote(options)
-      end
+      # conditional defintion based on whether `categories` option is present has to be moved inside __using__ macro
+      # here is explenation https://cocoa-research.works/2022/10/conditional-compliation-with-if-and-use-in-elixir/
+      use ExVision.Model.Definition.Parts.WithCategories, unquote(options)
 
       @behaviour ExVision.Model.Definition
 

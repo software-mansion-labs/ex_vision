@@ -42,6 +42,28 @@ defmodule ExVision.TestUtils do
     end
   end
 
+  defmacro assert_tensors_equal(a, b, delta \\ @default_delta, relative_delta \\ 0.0) do
+    quote do
+      value_condition =
+        unquote(a)
+        |> Nx.all_close(unquote(b), atol: unquote(delta), rtol: unquote(relative_delta))
+        |> Nx.reduce_min()
+        |> Nx.to_number() == 1
+
+      equal_on_count =
+        unquote(a)
+        |> Nx.equal(unquote(b))
+        |> Nx.as_type(:u64)
+        |> Nx.reduce(0, fn x, y -> Nx.add(x, y) end)
+        |> Nx.to_number()
+
+      number_count = unquote(a) |> Nx.shape() |> Tuple.product()
+      proportional_condition = equal_on_count / number_count > 0.99
+
+      assert value_condition or proportional_condition
+    end
+  end
+
   defmacro __using__(_opts) do
     quote do
       import ExVision.TestUtils, only: :macros
